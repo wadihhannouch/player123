@@ -1,0 +1,3 @@
+include ':HibridPlayer'
+include ':app'
+rootProject.name = "HibridLibraryApplication"
