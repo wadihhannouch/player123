@@ -10,9 +10,6 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-
-        HibridPlayer.init(urlStreaming = "https://live.hibridcdn.net/rotana/khaleejiya_mabr/playlist.m3u8",playerView = hibridPlayerView,context = this);
-
+        HibridPlayer(urlStreaming = "https://live.hibridcdn.net/rotana/khaleejiya_mabr/playlist.m3u8",playerView = hibridPlayerView,context = this);
     }
-
 }
