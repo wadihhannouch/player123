@@ -6,21 +6,18 @@ import android.os.Handler
 import com.google.android.exoplayer2.*
 import com.google.android.exoplayer2.ext.ima.ImaAdsLoader
 import com.google.android.exoplayer2.source.*
-import com.google.android.exoplayer2.source.ads.AdsMediaSource
 import com.google.android.exoplayer2.source.hls.HlsMediaSource
 import com.google.android.exoplayer2.trackselection.AdaptiveTrackSelection
 import com.google.android.exoplayer2.trackselection.DefaultTrackSelector
 import com.google.android.exoplayer2.trackselection.TrackSelection
 import com.google.android.exoplayer2.ui.PlayerView
 import com.google.android.exoplayer2.upstream.DataSource
-import com.google.android.exoplayer2.upstream.DataSpec
 import com.google.android.exoplayer2.upstream.DefaultBandwidthMeter
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory
 import com.google.android.exoplayer2.util.Log
 import com.google.android.exoplayer2.util.Util
 import com.google.android.exoplayer2.video.VideoListener
 
-import java.io.IOException
 
 class SmoothStreaminHibridPlayer(
     urlStreaming: String, playerView: PlayerView, context: Context,
@@ -32,7 +29,6 @@ class SmoothStreaminHibridPlayer(
         lateinit var mPlayerView: PlayerView;
         lateinit var mContext: Context;
         lateinit var mImaAdsLoader: ImaAdsLoader;
-        lateinit var mergedSource: MergingMediaSource;
         var mWithIma: Boolean = false;
     }
 
@@ -42,12 +38,10 @@ class SmoothStreaminHibridPlayer(
         mContext = context
         mImaAdsLoader = imaAdsLoader;
         mWithIma = withIma;
-        initializePlayer(urlStreaming, playerView, context)
+        init(urlStreaming, playerView, context,mWithIma)
     }
 
-
-
-    fun initializePlayer(urlStreaming: String, playerView: PlayerView, context: Context) {
+    fun init(urlStreaming: String, playerView: PlayerView, context: Context, mWithIma:Boolean) {
         val adaptiveTrackSelection: TrackSelection.Factory =
             AdaptiveTrackSelection.Factory()
         var player = ExoPlayerFactory.newSimpleInstance(
@@ -56,9 +50,6 @@ class SmoothStreaminHibridPlayer(
             DefaultTrackSelector(adaptiveTrackSelection)
         )
 
-        player.addListener(this)
-        player.addVideoListener(this)
-
         val defaultBandwidthMeter = DefaultBandwidthMeter()
         val dataSourceFactory: DataSource.Factory = DefaultDataSourceFactory(
             context,
@@ -66,31 +57,22 @@ class SmoothStreaminHibridPlayer(
         )
 
         val uri = Uri.parse(urlStreaming)
-
         val mediaSource: MediaSource = HlsMediaSource.Factory(dataSourceFactory).createMediaSource(uri);
-
-        val mediaSourceFactory: ProgressiveMediaSource.Factory =
-            ProgressiveMediaSource.Factory(dataSourceFactory)
-
-        Log.d("Hibrid Player", "mediaSourceFactory created");
-        val adsMediaSource = AdsMediaSource(mediaSource,mediaSourceFactory, mImaAdsLoader,playerView)
-        player.addMediaSource(adsMediaSource)
-//        }
-
-        Log.d("Hibrid Player", "ads mediasource created");
-
-        mediaSource.addEventListener(Handler(), this)
-        playerView.setPlayer(player)
-        mImaAdsLoader.setPlayer(player);
-        player.playWhenReady = true
-        player.prepare()
-        Log.d("Hibrid Player", "prepare created");
+        val myMediaSource :MediaSource = if(mWithIma){
+            ImaHibridPlayer().init(
+                dataSourceFactory = dataSourceFactory,
+                mediaSource = mediaSource,
+                playerView = playerView)
+        } else{
+            mediaSource;
+        }
+        MyPlayer().init(player,mediaSource,playerView,this);
     }
 
     override fun onPlayerError(error: ExoPlaybackException) {
         Log.e("PLAYER_ACTIVITY_TAG", "SOME ERROR IN PLAYER");
         if (isBehindLiveWindow(error)) {
-            initializePlayer(mUrl, mPlayerView, mContext);
+            init(mUrl, mPlayerView, mContext, mWithIma);
         }
     }
 
@@ -107,6 +89,4 @@ class SmoothStreaminHibridPlayer(
         }
         return false
     }
-
-
 }
