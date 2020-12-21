@@ -66,7 +66,7 @@ class SmoothStreaminHibridPlayer(
         } else{
             mediaSource;
         }
-        MyPlayer().init(player,mediaSource,playerView,this);
+        MyPlayer().init(player,myMediaSource,playerView,this);
     }
 
     override fun onPlayerError(error: ExoPlaybackException) {
