@@ -1,41 +1,59 @@
 package app.hibrid.hibridplayer
 
-import android.R
 import android.content.Context
 import android.net.Uri
+import android.widget.FrameLayout
 import com.google.android.exoplayer2.ext.ima.ImaAdsLoader
 import com.google.android.exoplayer2.ui.PlayerView
 
 
-class HibridPlayer(urlStreaming: String, playerView:PlayerView, context:Context){
+class HibridPlayer(
+    urlStreaming: String,
+    playerView: PlayerView,
+    context: Context,
+    withIma: Boolean,
+    withDai: Boolean,
+    imaUrl: String,
+    adUicontainer: FrameLayout
+){
     companion object{
         lateinit var mImaAdsLoader:ImaAdsLoader;
         lateinit var mUrlStreaming: String;
         lateinit var mPlayerView:PlayerView;
         lateinit var mContext:Context;
+        lateinit var mImaUrl:String;
+        lateinit var mAdUicontainer:FrameLayout;
+        var mWithIma:Boolean = false;
     }
     init {
         mUrlStreaming = urlStreaming;
         mPlayerView = playerView;
         mContext = context;
-        initialize(mUrlStreaming, mPlayerView, mContext)
+        mImaUrl = imaUrl;
+        mAdUicontainer = adUicontainer
+        mWithIma = withIma;
+
+        initialize(mUrlStreaming, mPlayerView, mContext,mWithIma)
     }
-
-    fun initialize (urlStreaming: String, playerView:PlayerView, context:Context){
-
-        val uri =  Uri.parse("![CDATA[https://pubads.g.doubleclick.net/gampad/ads?sz=640x480&iu=/124319096/external/single_ad_samples&ciu_szs=300x250&impl=s&gdfp_req=1&env=vp&output=vast&unviewed_position_start=1&cust_params=deployment%3Ddevsite%26sample_ct%3Dlinear&correlator=]]");
-        try {
-            mImaAdsLoader = ImaAdsLoader(context, uri)
-        }catch(e:Exception){
-            e.toString();
-        }
+    fun initialize (
+        urlStreaming: String,
+        playerView: PlayerView,
+        context: Context,
+        mWithIma: Boolean
+    ){
+            if(mWithIma){
+                val uri =  Uri.parse(mImaUrl);
+                mImaAdsLoader = ImaAdsLoader(context, uri)
+            }
 
         SmoothStreaminHibridPlayer(
             urlStreaming = urlStreaming,
             playerView = playerView,
             context = context,
             withIma = true,
-            imaAdsLoader = mImaAdsLoader
+            withDaiIma = true,
+            imaAdsLoader = mImaAdsLoader,
+            adUicontainer = mAdUicontainer
         );
     }
 }
