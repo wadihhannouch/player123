@@ -42,6 +42,7 @@ dependencies {
     implementation 'com.google.ads.interactivemedia.v3:interactivemedia:3.21.4'
     implementation "androidx.core:core-ktx:+"
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+    implementation 'androidx.constraintlayout:constraintlayout:2.0.4'
 }
 repositories {
     mavenCentral()
