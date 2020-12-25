@@ -130,7 +130,6 @@ class DaiWrapper(
 
             override fun onAdBreakEnded() {
                 mPlayerView.showController()
-                // Re-enable player controls.
             }
 
             override fun onAdPeriodStarted() {

@@ -20,7 +20,7 @@ class MainActivity : AppCompatActivity() {
             adUicontainer =  includeLayout.findViewById(R.id.adUiContainer) ,
             withIma = true,
             withDai = true,
-            autoplay = false,
+            autoplay = true,
             urlStreaming = "https://live.hibridcdn.net/rotana/khaleejiya_mabr/playlist.m3u8",
             daiAssetKey = "oAIUDEIWQ8ubHCUcRHxL3A",
             daiApiKey = "1ED69721F0ED78979BB9DAC0745CF86413ECCA98BEBDCD35F3C5E1AAD8D9939C",

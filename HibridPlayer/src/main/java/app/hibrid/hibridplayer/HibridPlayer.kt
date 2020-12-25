@@ -46,7 +46,6 @@ class HibridPlayer(
             player.playWhenReady= true
         }
 
-
         lateinit var mUrlStreaming: String;
         lateinit var mPlayerView: PlayerView;
         lateinit var mContext: Context;
