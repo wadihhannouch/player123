@@ -3,6 +3,7 @@ package app.hibrid.hibridplayer
 
 import android.content.Context
 import android.net.Uri
+import android.view.ViewGroup
 import android.widget.FrameLayout
 import com.google.ads.interactivemedia.v3.api.*
 import com.google.ads.interactivemedia.v3.api.player.VideoProgressUpdate
@@ -22,7 +23,7 @@ class DaiWrapper(
     player: SimpleExoPlayer,
     playerView: PlayerView,
     context: Context,
-    adUicontainer: FrameLayout,
+    adUicontainer: ViewGroup,
     daiAssetKey: String,
     daiApiKey: String,
     withIma: Boolean,
@@ -31,16 +32,17 @@ class DaiWrapper(
     reintialize: Boolean,
     requested: Boolean
 
-) : AdsLoader.AdsLoadedListener, AdErrorEvent.AdErrorListener {
+) : AdsLoader.AdsLoadedListener, AdErrorEvent.AdErrorListener, AdEvent.AdEventListener {
     companion object {
         lateinit var mPlayer: SimpleExoPlayer;
         lateinit var mPlayerView: PlayerView;
         lateinit var mContext: Context;
-        lateinit var mAdUicontainer: FrameLayout;
+        lateinit var mAdUicontainer: ViewGroup;
         lateinit var adsLoader: AdsLoader;
         lateinit var mDaiAssetKey: String;
         lateinit var mDaiApiKey: String;
         lateinit var mImaUrl: String;
+        lateinit var streamManager: StreamManager;
         var mWithIma: Boolean = false;
         var mRequested: Boolean = false;
         var mAutoplay: Boolean = false;
@@ -62,16 +64,18 @@ class DaiWrapper(
         init()
     }
 
+
+
+
     fun init() {
         val videoStreamPlayer: VideoStreamPlayer = createVideoStreamPlayer()!!;
-        val displayContainer =
-            ImaSdkFactory.createStreamDisplayContainer(mAdUicontainer, videoStreamPlayer)
         val sdkFactory = ImaSdkFactory.getInstance()
+        val displayContainer = ImaSdkFactory.createStreamDisplayContainer(mAdUicontainer, videoStreamPlayer)
         val settings = sdkFactory.createImaSdkSettings()
-        // Change any settings as necessary here.
         settings.autoPlayAdBreaks = true
-        settings.playerType = "PLAYER_TYPE"
+        settings.playerType = "HibridPlayer"
         adsLoader = sdkFactory.createAdsLoader(mContext, settings, displayContainer)
+
         val request: StreamRequest = sdkFactory.createLiveStreamRequest(
             mDaiAssetKey,
             mDaiApiKey
@@ -165,13 +169,19 @@ class DaiWrapper(
             mRequested = true
         }
     }
-
     override fun onAdsManagerLoaded(p0: AdsManagerLoadedEvent?) {
+        streamManager = p0!!.streamManager;
+        streamManager.addAdErrorListener(this);
+        streamManager.addAdEventListener(this);
+        streamManager.init();
         Log.e("AdsManagerLoadedEvent",p0.toString())
     }
-
     override fun onAdError(p0: AdErrorEvent?) {
         Log.e("AdErrorEvent",p0.toString())
     }
+    override fun onAdEvent(p0: AdEvent?) {
+        Log.e("AdErrorEvent",p0.toString())
+    }
+
 
 }

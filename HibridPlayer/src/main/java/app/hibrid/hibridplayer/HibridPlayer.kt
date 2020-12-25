@@ -1,7 +1,11 @@
 package app.hibrid.hibridplayer
 
 import android.content.Context
+import android.graphics.drawable.BitmapDrawable
+import android.media.ThumbnailUtils
 import android.net.Uri
+import android.provider.MediaStore
+import android.view.ViewGroup
 import android.widget.FrameLayout
 import com.google.android.exoplayer2.ExoPlaybackException
 import com.google.android.exoplayer2.Player
@@ -15,6 +19,9 @@ import com.google.android.exoplayer2.upstream.DefaultBandwidthMeter
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory
 import com.google.android.exoplayer2.util.Log
 import com.google.android.exoplayer2.util.Util
+import java.net.CookieHandler
+import java.net.CookieManager
+import java.net.CookiePolicy
 
 
 class HibridPlayer(
@@ -31,17 +38,20 @@ class HibridPlayer(
 ) : Player.EventListener {
     companion object {
         fun pause() {
+            mPlayerView.keepScreenOn = false
             player.playWhenReady= false
         }
         fun play() {
+            mPlayerView.keepScreenOn = true
             player.playWhenReady= true
         }
+
 
         lateinit var mUrlStreaming: String;
         lateinit var mPlayerView: PlayerView;
         lateinit var mContext: Context;
         lateinit var mImaUrl: String;
-        lateinit var mAdUicontainer: FrameLayout;
+        lateinit var mAdUicontainer: ViewGroup;
         lateinit var mDaiAssetKey: String;
         lateinit var mdaiApiKey: String;
         lateinit var mMediaSource: MediaSource;
@@ -52,6 +62,12 @@ class HibridPlayer(
     }
 
     init {
+        var cookieManager: CookieManager? = null
+        cookieManager =  CookieManager ()
+        cookieManager.setCookiePolicy(CookiePolicy.ACCEPT_ORIGINAL_SERVER)
+        if (CookieHandler.getDefault() !== cookieManager) {
+            CookieHandler.setDefault(cookieManager)
+        }
         mUrlStreaming = urlStreaming;
         mPlayerView = playerView;
         mContext = context;
@@ -63,10 +79,11 @@ class HibridPlayer(
         mDaiAssetKey = daiAssetKey
         mAutoplay = autoplay
 
+
         initialize(reintialize = false)
     }
 
-    fun initialize(reintialize:Boolean) {
+    fun initialize(reintialize: Boolean) {
         player = SimpleExoPlayer.Builder(mContext).build()
         player.addListener(this)
         if (mWithDai) {
@@ -97,7 +114,12 @@ class HibridPlayer(
                     url
                 )
             );
-            MyPlayer().init(player = player, mediaSource = mMediaSource, playerView = mPlayerView,autoplay = mAutoplay)
+            MyPlayer().init(
+                player = player,
+                mediaSource = mMediaSource,
+                playerView = mPlayerView,
+                autoplay = mAutoplay
+            )
         }
     }
     override fun onPlayerError(error: ExoPlaybackException) {
@@ -122,4 +144,5 @@ class HibridPlayer(
         }
         return false
     }
+
 }

@@ -30,6 +30,7 @@ class MyPlayer() {
         mPlayerView.player = mPlayer
         mPlayer.playWhenReady = mAutoplay
         mPlayer.prepare()
+        mPlayerView.keepScreenOn = true
         mPlayerView.setControlDispatcher(
             object : ControlDispatcher {
                 override fun dispatchSetPlayWhenReady(
