@@ -4,7 +4,7 @@ package app.hibrid.hibridplayer
 import android.content.Context
 import android.net.Uri
 import android.view.ViewGroup
-import android.widget.FrameLayout
+import app.hibrid.hibridplayer.MyPlayer.SampleVideoPlayerCallback
 import com.google.ads.interactivemedia.v3.api.*
 import com.google.ads.interactivemedia.v3.api.player.VideoProgressUpdate
 import com.google.ads.interactivemedia.v3.api.player.VideoStreamPlayer
@@ -17,6 +17,7 @@ import com.google.android.exoplayer2.upstream.DefaultBandwidthMeter
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory
 import com.google.android.exoplayer2.util.Log
 import com.google.android.exoplayer2.util.Util
+import java.util.*
 
 
 class DaiWrapper(
@@ -25,7 +26,7 @@ class DaiWrapper(
     context: Context,
     adUicontainer: ViewGroup,
     daiAssetKey: String,
-    daiApiKey: String,
+    daiApiKey: String?,
     withIma: Boolean,
     imaUrl: String,
     autoplay: Boolean,
@@ -40,13 +41,15 @@ class DaiWrapper(
         lateinit var mAdUicontainer: ViewGroup;
         lateinit var adsLoader: AdsLoader;
         lateinit var mDaiAssetKey: String;
-        lateinit var mDaiApiKey: String;
+        var mDaiApiKey: String? =null;
         lateinit var mImaUrl: String;
         lateinit var streamManager: StreamManager;
         var mWithIma: Boolean = false;
         var mRequested: Boolean = false;
         var mAutoplay: Boolean = false;
         var mReintialize: Boolean = false;
+        var playerCallbacks: MutableList<VideoStreamPlayerCallback>? = mutableListOf<VideoStreamPlayerCallback>()
+
     }
 
     init {
@@ -61,33 +64,47 @@ class DaiWrapper(
         mImaUrl = imaUrl
         mDaiApiKey = daiApiKey
         mDaiAssetKey = daiAssetKey
+
         init()
     }
-
-
-
 
     fun init() {
         val videoStreamPlayer: VideoStreamPlayer = createVideoStreamPlayer()!!;
         val sdkFactory = ImaSdkFactory.getInstance()
-        val displayContainer = ImaSdkFactory.createStreamDisplayContainer(mAdUicontainer, videoStreamPlayer)
+        val displayContainer = ImaSdkFactory.createStreamDisplayContainer(
+            mAdUicontainer,
+            videoStreamPlayer
+        )
         val settings = sdkFactory.createImaSdkSettings()
         settings.autoPlayAdBreaks = true
+
         settings.playerType = "HibridPlayer"
         adsLoader = sdkFactory.createAdsLoader(mContext, settings, displayContainer)
-
         val request: StreamRequest = sdkFactory.createLiveStreamRequest(
             mDaiAssetKey,
             mDaiApiKey
         );
         adsLoader.addAdErrorListener(this)
         adsLoader.addAdsLoadedListener(this)
+        adsLoader.requestStream(request)
+        var myPlayer = MyPlayer();
+        myPlayer.setSampleVideoPlayerCallback(object : SampleVideoPlayerCallback {
+            override fun onUserTextReceived(userText: String?) {
+                for (callback in playerCallbacks!!) {
+                    callback.onUserTextReceived(userText)
+                }
+            }
 
-        var stremUrlRequest = adsLoader.requestStream(request);
-        Log.d("Dai stremUrlRequest1", stremUrlRequest.toString())
+            override fun onSeek(windowIndex: Int, positionMs: Long) {
+                var timeToSeek = positionMs.toDouble()
+
+            }
+
+        })
     }
 
     private fun createVideoStreamPlayer(): VideoStreamPlayer? {
+
         return object : VideoStreamPlayer {
             override fun getContentProgress(): VideoProgressUpdate {
                 return VideoProgressUpdate(
@@ -96,6 +113,7 @@ class DaiWrapper(
             }
 
             override fun getVolume(): Int {
+
                 return 100
             }
 
@@ -115,30 +133,33 @@ class DaiWrapper(
             override fun addCallback(
                 videoStreamPlayerCallback: VideoStreamPlayerCallback
             ) {
-
+                playerCallbacks!!.add(videoStreamPlayerCallback)
+                    Log.e("wadih", "addCallback")
             }
 
             override fun removeCallback(
                 videoStreamPlayerCallback: VideoStreamPlayerCallback
             ) {
-
+                playerCallbacks!!.remove(videoStreamPlayerCallback)
+                Log.e("wadih", "removeCallback")
             }
 
             override fun onAdBreakStarted() {
-                mPlayerView.hideController()
+                Log.e("wadih", "onAdBreakStarted")
+//                mPlayerView.hideController()
             }
 
             override fun onAdBreakEnded() {
-                mPlayerView.showController()
+//                mPlayerView.hideController()
             }
 
             override fun onAdPeriodStarted() {
-
+                Log.e("wadih", "onAdPeriodStarted")
             }
 
             override fun onAdPeriodEnded() {
+                Log.e("wadih", "onAdPeriodEnded")
             }
-
             override fun seek(p0: Long) {
                 mPlayer.seekTo(p0)
             }
@@ -164,7 +185,13 @@ class DaiWrapper(
                 } else {
                     HlsMediaSource.Factory(dataSourceFactory).createMediaSource(Uri.parse(url));
                 }
-            MyPlayer().init(player = mPlayer, mediaSource = mediaSource, playerView = mPlayerView,autoplay = mAutoplay)
+
+            MyPlayer().init(
+                player = mPlayer,
+                mediaSource = mediaSource,
+                playerView = mPlayerView,
+                autoplay = mAutoplay
+            )
             mRequested = true
         }
     }
@@ -173,14 +200,12 @@ class DaiWrapper(
         streamManager.addAdErrorListener(this);
         streamManager.addAdEventListener(this);
         streamManager.init();
-        Log.e("AdsManagerLoadedEvent",p0.toString())
+        Log.e("AdsManagerLoadedEvent", p0.toString())
     }
     override fun onAdError(p0: AdErrorEvent?) {
-        Log.e("AdErrorEvent",p0.toString())
+        Log.e("AdErrorEvent", p0.toString())
     }
     override fun onAdEvent(p0: AdEvent?) {
-        Log.e("AdErrorEvent",p0.toString())
+        Log.e("AdErrorEvent", p0.toString())
     }
-
-
 }

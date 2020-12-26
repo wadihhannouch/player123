@@ -1,10 +1,7 @@
 package app.hibrid.hibridplayer
 
 import android.content.Context
-import android.graphics.drawable.BitmapDrawable
-import android.media.ThumbnailUtils
 import android.net.Uri
-import android.provider.MediaStore
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import com.google.android.exoplayer2.ExoPlaybackException
@@ -33,7 +30,7 @@ class HibridPlayer(
     imaUrl: String,
     adUicontainer: FrameLayout,
     daiAssetKey: String,
-    daiApiKey: String,
+    daiApiKey: String?,
     autoplay: Boolean
 ) : Player.EventListener {
     companion object {
@@ -52,7 +49,7 @@ class HibridPlayer(
         lateinit var mImaUrl: String;
         lateinit var mAdUicontainer: ViewGroup;
         lateinit var mDaiAssetKey: String;
-        lateinit var mdaiApiKey: String;
+        var mdaiApiKey: String? = null;
         lateinit var mMediaSource: MediaSource;
         var mWithIma: Boolean = false;
         var mWithDai: Boolean = false;
@@ -85,6 +82,7 @@ class HibridPlayer(
     fun initialize(reintialize: Boolean) {
         player = SimpleExoPlayer.Builder(mContext).build()
         player.addListener(this)
+
         if (mWithDai) {
             DaiWrapper(
                 requested = false,
@@ -143,5 +141,6 @@ class HibridPlayer(
         }
         return false
     }
+
 
 }
