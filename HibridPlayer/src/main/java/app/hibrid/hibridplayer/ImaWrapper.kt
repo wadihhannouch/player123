@@ -30,8 +30,8 @@ class ImaWrapper {
             val mImaAdsLoader = ImaAdsLoader(context, mImaUri)
             val defaultBandwidthMeter = DefaultBandwidthMeter()
             val dataSourceFactory: DataSource.Factory = DefaultDataSourceFactory(
-                DaiWrapper.mContext,
-                Util.getUserAgent(DaiWrapper.mContext, "Exo2"), defaultBandwidthMeter
+                context,
+                Util.getUserAgent(context, "Exo2"), defaultBandwidthMeter
             )
             val uri = Uri.parse(url)
             val mediaSource: MediaSource = HlsMediaSource.Factory(dataSourceFactory).createMediaSource(
@@ -40,7 +40,8 @@ class ImaWrapper {
             val mediaSourceFactory: ProgressiveMediaSource.Factory =
                 ProgressiveMediaSource.Factory(dataSourceFactory)
             Log.d("Hibrid Player", "mediaSourceFactory created");
-            val adsMediaSource = AdsMediaSource(
+            val adsMediaSource =
+                AdsMediaSource(
                 mediaSource,
                 mediaSourceFactory,
                 mImaAdsLoader,

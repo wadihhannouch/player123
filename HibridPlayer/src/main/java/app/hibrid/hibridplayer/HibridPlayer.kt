@@ -54,6 +54,7 @@ class HibridPlayer(
         var mWithIma: Boolean = false;
         var mWithDai: Boolean = false;
         var mAutoplay: Boolean = false;
+        lateinit var sampleVideoPlayer :VideoPlayer;
         lateinit var player :SimpleExoPlayer ;
     }
 
@@ -64,6 +65,7 @@ class HibridPlayer(
         if (CookieHandler.getDefault() !== cookieManager) {
             CookieHandler.setDefault(cookieManager)
         }
+
         mUrlStreaming = urlStreaming;
         mPlayerView = playerView;
         mContext = context;
@@ -81,22 +83,36 @@ class HibridPlayer(
 
     fun initialize(reintialize: Boolean) {
         player = SimpleExoPlayer.Builder(mContext).build()
-        player.addListener(this)
+//        player.addListener(this)
 
         if (mWithDai) {
-            DaiWrapper(
-                requested = false,
-                player = player,
-                playerView = mPlayerView,
-                context = mContext,
-                adUicontainer = mAdUicontainer,
-                daiApiKey = mdaiApiKey,
-                daiAssetKey = mDaiAssetKey,
-                withIma = mWithIma,
-                imaUrl = mImaUrl,
-                autoplay = mAutoplay,
-                reintialize = reintialize
+
+           sampleVideoPlayer = VideoPlayer(
+               mContext, mPlayerView, mWithIma, mImaUrl
+           )
+            sampleVideoPlayer.enableControls(false)
+            val sampleAdsWrapper = DaiAdsWrapper(
+                mContext,
+                sampleVideoPlayer,
+                mAdUicontainer, mWithIma, mImaUrl, mDaiAssetKey, mdaiApiKey
             )
+            sampleAdsWrapper.requestAndPlayAds()
+//            sampleAdsWrapper.setFallbackUrl(mUrlStreaming)
+
+//            DaiWrapper(
+//                requested = false,
+//                player = player,
+//                playerView = mPlayerView,
+//                context = mContext,
+//                adUicontainer = mAdUicontainer,
+//                daiApiKey = mdaiApiKey,
+//                daiAssetKey = mDaiAssetKey,
+//                withIma = mWithIma,
+//                imaUrl = mImaUrl,
+//                autoplay = mAutoplay,
+//                reintialize = reintialize,
+//                streamUrl = mUrlStreaming
+//            )
         }
         else {
             val defaultBandwidthMeter = DefaultBandwidthMeter()
