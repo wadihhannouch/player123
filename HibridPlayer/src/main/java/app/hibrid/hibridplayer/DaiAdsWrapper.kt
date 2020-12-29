@@ -25,6 +25,8 @@ import com.google.ads.interactivemedia.v3.api.player.VideoProgressUpdate
 import com.google.ads.interactivemedia.v3.api.player.VideoStreamPlayer
 import com.google.ads.interactivemedia.v3.api.player.VideoStreamPlayer.VideoStreamPlayerCallback
 import com.google.android.exoplayer2.util.Log
+import com.google.android.gms.analytics.HitBuilders
+import com.google.android.gms.analytics.Tracker
 import java.util.*
 
 /** This class adds ad-serving support to Sample HlsVideoPlayer  */
@@ -35,7 +37,9 @@ class DaiAdsWrapper(
     mWithIma: Boolean,
     mImaUrl: String,
     var mDaiAssetKey: String,
-    var mdaiApiKey: String?
+    var mdaiApiKey: String?,
+    gaTracker: Tracker?,
+    withGaTracker: Boolean
 ) : AdErrorListener, AdsLoadedListener, AdEvent.AdEventListener {
 
     private val sdkFactory: ImaSdkFactory
@@ -44,13 +48,14 @@ class DaiAdsWrapper(
     private var streamManager: StreamManager? = null
     private val playerCallbacks: MutableList<VideoStreamPlayerCallback>
     private var fallbackUrl: String? = null
+    private  var mGaTracker : Tracker? = gaTracker;
+    var mWithGaTracker: Boolean = withGaTracker;
 
     private fun createAdsLoader() {
         val settings = sdkFactory.createImaSdkSettings()
         settings.playerType = PLAYER_TYPE
         val videoStreamPlayer = createVideoStreamPlayer()
-        displayContainer =
-            ImaSdkFactory.createStreamDisplayContainer(adUiContainer, videoStreamPlayer)
+        displayContainer = ImaSdkFactory.createStreamDisplayContainer(adUiContainer, videoStreamPlayer)
         videoPlayer!!.setSampleVideoPlayerCallback(
             object : VideoPlayer.SampleVideoPlayerCallback {
                 override fun onUserTextReceived(userText: String?) {
@@ -73,6 +78,7 @@ class DaiAdsWrapper(
     private fun buildStreamRequest(): StreamRequest {
         return sdkFactory.createLiveStreamRequest(mDaiAssetKey, mdaiApiKey)
     }
+
     private fun createVideoStreamPlayer(): VideoStreamPlayer {
         return object : VideoStreamPlayer {
             override fun loadUrl(url: String, subtitles: List<HashMap<String, String>>) {
@@ -104,15 +110,14 @@ class DaiAdsWrapper(
             }
 
             override fun onAdBreakStarted() {
-                // Disable player controls.
                 videoPlayer!!.enableControls(false)
-                Log.d("TAG","Ad Break Started\n");
+                sendGaTrackerEvent("onAdBreakStarted","Dai")
             }
 
             override fun onAdBreakEnded() {
                 // Re-enable player controls.
                 videoPlayer?.enableControls(true)
-                Log.d("TAG","Ad Break Ended\n")
+                sendGaTrackerEvent("onAdBreakEnded","Dai")
             }
 
             override fun onAdPeriodStarted() {
@@ -124,7 +129,7 @@ class DaiAdsWrapper(
             }
 
             override fun seek(timeMs: Long) {
-                // An ad was skipped. Skip to the content time.
+
                 videoPlayer!!.seekTo(timeMs)
                 Log.d("TAG","seek")
             }
@@ -139,9 +144,9 @@ class DaiAdsWrapper(
 
     /** AdErrorListener implementation  */
     override fun onAdError(event: AdErrorEvent) {
-        Log.d("TAG",String.format("Error: %s\n", event.error.message))
         // play fallback URL.
-        Log.d("TAG","Playing fallback Url\n")
+        sendGaTrackerEvent(title = "ad erroe",description = "Message: "+event.error.message.toString() +
+                " Code :"+ event.error.errorCodeNumber.toString())
         videoPlayer!!.setStreamUrl(fallbackUrl)
         videoPlayer.enableControls(true)
         videoPlayer.play()
@@ -152,7 +157,7 @@ class DaiAdsWrapper(
         when (event.type) {
             AdEventType.AD_PROGRESS -> {
             }
-            else -> Log.d("TAG",String.format("Event: %s\n", event.type))
+            else -> Log.d("TAG",String.format("Event Type: %s\n", event.type))
         }
     }
 
@@ -164,16 +169,19 @@ class DaiAdsWrapper(
         streamManager!!.init()
     }
 
-    /** Sets fallback URL in case ads stream fails.  */
-    fun setFallbackUrl(url: String?) {
-        fallbackUrl = url
-    }
-
 
     companion object {
-        // Live stream asset key.
-        private const val TEST_ASSET_KEY = "sN_IYUG8STe1ZzhIIE_ksA"
         private const val PLAYER_TYPE = "DAISamplePlayer"
+    }
+
+    fun sendGaTrackerEvent(title:String, description:String){
+        if(mWithGaTracker && mGaTracker!=null )
+        mGaTracker!!.send(
+            HitBuilders.EventBuilder()
+                .setCategory(title).setCategory(description)
+                .build());
+
+        Log.d(title ,description);
     }
 
     /**

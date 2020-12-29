@@ -5,6 +5,7 @@ import android.net.Uri
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import com.google.android.exoplayer2.ExoPlaybackException
+import com.google.android.exoplayer2.MediaItem
 import com.google.android.exoplayer2.Player
 import com.google.android.exoplayer2.SimpleExoPlayer
 import com.google.android.exoplayer2.source.BehindLiveWindowException
@@ -16,6 +17,7 @@ import com.google.android.exoplayer2.upstream.DefaultBandwidthMeter
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory
 import com.google.android.exoplayer2.util.Log
 import com.google.android.exoplayer2.util.Util
+import com.google.android.gms.analytics.Tracker
 import java.net.CookieHandler
 import java.net.CookieManager
 import java.net.CookiePolicy
@@ -31,16 +33,20 @@ class HibridPlayer(
     adUicontainer: FrameLayout,
     daiAssetKey: String,
     daiApiKey: String?,
-    autoplay: Boolean
+    autoplay: Boolean,
+    gaTracker: Tracker?,
+    withGaTracker: Boolean
 ) : Player.EventListener {
     companion object {
         fun pause() {
             mPlayerView.keepScreenOn = false
-            player.playWhenReady= false
+            if(mPlayerView.player!= null)
+                mPlayerView.player!!.playWhenReady =  false
         }
         fun play() {
             mPlayerView.keepScreenOn = true
-            player.playWhenReady= true
+            if(mPlayerView.player!= null)
+                mPlayerView.player!!.playWhenReady =  true
         }
 
         lateinit var mUrlStreaming: String;
@@ -54,18 +60,21 @@ class HibridPlayer(
         var mWithIma: Boolean = false;
         var mWithDai: Boolean = false;
         var mAutoplay: Boolean = false;
+        var mWithGaTracker: Boolean = false;
         lateinit var sampleVideoPlayer :VideoPlayer;
         lateinit var player :SimpleExoPlayer ;
+        var mGaTracker :Tracker? =null;
     }
 
     init {
-        var cookieManager: CookieManager? = null
-        cookieManager =  CookieManager ()
+        mWithGaTracker = withGaTracker;
+        if(gaTracker!=null)
+            mGaTracker = gaTracker;
+        val cookieManager =   CookieManager ()
         cookieManager.setCookiePolicy(CookiePolicy.ACCEPT_ORIGINAL_SERVER)
         if (CookieHandler.getDefault() !== cookieManager) {
             CookieHandler.setDefault(cookieManager)
         }
-
         mUrlStreaming = urlStreaming;
         mPlayerView = playerView;
         mContext = context;
@@ -76,8 +85,6 @@ class HibridPlayer(
         mdaiApiKey = daiApiKey
         mDaiAssetKey = daiAssetKey
         mAutoplay = autoplay
-
-
         initialize(reintialize = false)
     }
 
@@ -86,19 +93,23 @@ class HibridPlayer(
 //        player.addListener(this)
 
         if (mWithDai) {
-
            sampleVideoPlayer = VideoPlayer(
-               mContext, mPlayerView, mWithIma, mImaUrl
+               mContext,
+               mPlayerView,
+               mWithIma,
+               mImaUrl,
+               mGaTracker,
+               mWithGaTracker
            )
             sampleVideoPlayer.enableControls(false)
             val sampleAdsWrapper = DaiAdsWrapper(
                 mContext,
                 sampleVideoPlayer,
-                mAdUicontainer, mWithIma, mImaUrl, mDaiAssetKey, mdaiApiKey
+                mAdUicontainer, mWithIma, mImaUrl, mDaiAssetKey, mdaiApiKey,mGaTracker, mWithGaTracker
             )
+            if(mWithDai)
             sampleAdsWrapper.requestAndPlayAds()
 //            sampleAdsWrapper.setFallbackUrl(mUrlStreaming)
-
 //            DaiWrapper(
 //                requested = false,
 //                player = player,
@@ -115,18 +126,29 @@ class HibridPlayer(
 //            )
         }
         else {
-            val defaultBandwidthMeter = DefaultBandwidthMeter()
+            val defaultBandwidthMeter = DefaultBandwidthMeter.Builder(mContext).build()
             val dataSourceFactory: DataSource.Factory = DefaultDataSourceFactory(
                 mContext,
                 Util.getUserAgent(mContext, "Exo2"), defaultBandwidthMeter
             )
             val url = if(mWithIma && !reintialize) {
                 mImaUrl} else mUrlStreaming
-            mMediaSource = HlsMediaSource.Factory(dataSourceFactory).createMediaSource(
-                Uri.parse(
-                    url
-                )
-            );
+
+            val mediaItem = MediaItem.fromUri(Uri.parse(url))
+
+            mMediaSource =
+                if(mWithIma){
+                    ImaWrapper().init(
+                        url = mUrlStreaming,
+                        imaUrl = url,
+                        playerView = mPlayerView,
+                        context = mContext,
+                        player = player,
+                        gaTracker = mGaTracker,
+                        withGaTracker = mWithGaTracker)
+                }
+                else
+                    HlsMediaSource.Factory(dataSourceFactory).createMediaSource(mediaItem);
             MyPlayer().init(
                 player = player,
                 mediaSource = mMediaSource,
@@ -135,6 +157,7 @@ class HibridPlayer(
             )
         }
     }
+
     override fun onPlayerError(error: ExoPlaybackException) {
         Log.e("PLAYER_ACTIVITY_TAG", "SOME ERROR IN PLAYER");
         if (isBehindLiveWindow(error)) {
@@ -157,6 +180,5 @@ class HibridPlayer(
         }
         return false
     }
-
 
 }

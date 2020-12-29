@@ -14,7 +14,6 @@ class AnalyticsApplication : Application() {
         super.onCreate()
         sAnalytics = GoogleAnalytics.getInstance(this)
     }
-
     /**
      * Gets the default [Tracker] for this [Application].
      * @return tracker
@@ -22,7 +21,7 @@ class AnalyticsApplication : Application() {
     @Synchronized
     fun getDefaultTracker(): Tracker? {
         if (sTracker == null) {
-            sTracker = sAnalytics!!.newTracker("");
+            sTracker = sAnalytics!!.newTracker("UA-61148841-2");
         }
         return sTracker
     }

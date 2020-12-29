@@ -19,7 +19,6 @@ import android.content.Context
 import android.net.Uri
 import android.os.Build
 import android.util.Log
-import app.hibrid.hibridplayer.todelete.DaiWrapper
 import com.google.android.exoplayer2.*
 import com.google.android.exoplayer2.metadata.emsg.EventMessage
 import com.google.android.exoplayer2.metadata.id3.TextInformationFrame
@@ -30,13 +29,16 @@ import com.google.android.exoplayer2.ui.PlayerView
 import com.google.android.exoplayer2.upstream.DataSource
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory
 import com.google.android.exoplayer2.util.Util
+import com.google.android.gms.analytics.Tracker
 
 /** A video player that plays HLS or DASH streams using ExoPlayer.  */
 class VideoPlayer(
     private val context: Context,
     private val playerView: PlayerView,
     mWithIma: Boolean,
-    mImaUrl: String
+    mImaUrl: String,
+    gaTracker: Tracker?,
+    withGaTracker: Boolean
 ) {
 
     /** Video player callback to be called when TXXX ID3 tag is received or seeking occurs.  */
@@ -48,6 +50,8 @@ class VideoPlayer(
     var imaUrl = mImaUrl;
     private var simpleExoPlayer: SimpleExoPlayer? = null
     private var playerCallback: SampleVideoPlayerCallback? = null
+    private var mGaTracker:Tracker? = gaTracker;
+    private var mWithGaTracker = withGaTracker;
 
     @C.ContentType
     private var currentlyPlayingStreamType = C.TYPE_OTHER
@@ -136,7 +140,6 @@ class VideoPlayer(
         val mediaItem = MediaItem.Builder().setUri(contentUri).build()
         val mediaSource: MediaSource
         currentlyPlayingStreamType = Util.inferContentType(Uri.parse(streamUrl))
-
         mediaSource =
         if(withIma){
             ImaWrapper().init(
@@ -144,7 +147,9 @@ class VideoPlayer(
                 url = streamUrl!!,
                 imaUrl = imaUrl,
                 context = context,
-                player = simpleExoPlayer!!
+                player = simpleExoPlayer!!,
+                gaTracker = mGaTracker,
+                withGaTracker = mWithGaTracker
             )
         }
         else{
@@ -154,9 +159,6 @@ class VideoPlayer(
         simpleExoPlayer!!.setMediaSource(mediaSource)
         simpleExoPlayer!!.prepare()
         // Register for ID3 events.
-
-
-
         simpleExoPlayer!!.addMetadataOutput { metadata ->
             for (i in 0 until metadata.length()) {
                 val entry = metadata[i]
@@ -188,10 +190,6 @@ class VideoPlayer(
         simpleExoPlayer!!.seekTo(positionMs)
     }
 
-    fun seekTo(windowIndex: Int, positionMs: Long) {
-        simpleExoPlayer!!.seekTo(windowIndex, positionMs)
-    }
-
     private fun release() {
         if (simpleExoPlayer != null) {
             simpleExoPlayer!!.release()
@@ -213,10 +211,11 @@ class VideoPlayer(
         }
     }
 
-    // Methods for exposing player information.
     fun setSampleVideoPlayerCallback(callback: SampleVideoPlayerCallback?) {
         playerCallback = callback
-    }// Adjust position to be relative to start of period rather than window, to account for DVR
+    }
+
+    // Adjust position to be relative to start of period rather than window, to account for DVR
     // window.
 // This case is when the dash stream has a format of non-sliding window.
     /** Returns current offset position of the playhead in milliseconds for DASH and HLS stream.  */
@@ -238,7 +237,7 @@ class VideoPlayer(
                 ) {
                     simpleExoPlayer!!.currentPosition
                 } else simpleExoPlayer!!.currentPosition
-                +window.windowStartTimeMs - window.presentationStartTimeMs
+                (window.windowStartTimeMs - window.presentationStartTimeMs)
             } else {
                 // Adjust position to be relative to start of period rather than window, to account for DVR
                 // window.

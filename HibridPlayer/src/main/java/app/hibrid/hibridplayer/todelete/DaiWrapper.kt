@@ -4,15 +4,14 @@ package app.hibrid.hibridplayer.todelete
 import android.content.Context
 import android.net.Uri
 import android.view.ViewGroup
-import app.hibrid.hibridplayer.ImaWrapper
 import app.hibrid.hibridplayer.MyPlayer
-import app.hibrid.hibridplayer.VideoPlayer
 import com.google.ads.interactivemedia.v3.api.*
 import com.google.ads.interactivemedia.v3.api.AdEvent.AdEventType
 import com.google.ads.interactivemedia.v3.api.player.VideoAdPlayer
 import com.google.ads.interactivemedia.v3.api.player.VideoProgressUpdate
 import com.google.ads.interactivemedia.v3.api.player.VideoStreamPlayer
 import com.google.ads.interactivemedia.v3.api.player.VideoStreamPlayer.VideoStreamPlayerCallback
+import com.google.android.exoplayer2.MediaItem
 import com.google.android.exoplayer2.SimpleExoPlayer
 import com.google.android.exoplayer2.source.DefaultMediaSourceFactory
 import com.google.android.exoplayer2.source.hls.HlsMediaSource
@@ -116,10 +115,11 @@ class DaiWrapper(
     private fun createAdsLoader(sdkFactory: ImaSdkFactory) {
         val settings = sdkFactory.createImaSdkSettings()
         settings.playerType = PLAYER_TYPE
+
         val videoStreamPlayer = createVideoStreamPlayer()
         displayContainer =
             ImaSdkFactory.createStreamDisplayContainer(mAdUicontainer, videoStreamPlayer)
-        myPlayer!!.setSampleVideoPlayerCallback(
+        myPlayer.setSampleVideoPlayerCallback(
             object : MyPlayer.SampleVideoPlayerCallback {
                 override fun onUserTextReceived(userText: String?) {
                     for (callback in playerCallbacks) {
@@ -164,17 +164,18 @@ class DaiWrapper(
                 mPlayer.play()
             }
             override fun addCallback(videoStreamPlayerCallback: VideoStreamPlayerCallback) {
-                playerCallbacks!!.add(videoStreamPlayerCallback)
+                playerCallbacks.add(videoStreamPlayerCallback)
                 Log.d("wadih", "addCallback")
             }
             override fun removeCallback(videoStreamPlayerCallback: VideoStreamPlayerCallback) {
-                playerCallbacks!!.remove(videoStreamPlayerCallback)
+                playerCallbacks.remove(videoStreamPlayerCallback)
                 Log.d("wadih", "removeCallback ")
             }
             override fun onAdBreakStarted() {
                 myPlayer.enableControls(false);
                 Log.d("wadih onAdBreakStarted", "onAdBreakStarted")
             }
+
             override fun onAdBreakEnded() {
                 myPlayer.enableControls(true);
                 Log.d("wadih onAdBreakEnded", "onAdBreakEnded")
@@ -197,24 +198,25 @@ class DaiWrapper(
 
     fun createMediaSources(url: String) {
         if (!mRequested) {
-            val defaultBandwidthMeter = DefaultBandwidthMeter()
+            val defaultBandwidthMeter = DefaultBandwidthMeter.Builder(mContext).build()
             val dataSourceFactory: DataSource.Factory = DefaultDataSourceFactory(
                 mContext,
                 Util.getUserAgent(mContext, "Exo2"), defaultBandwidthMeter
             )
+            val mediaItem = MediaItem.Builder().setUri(Uri.parse(url)).build()
             val mediaSource =
-                if (mWithIma && !mReintialize) {
-                    ImaWrapper().init(
-                        playerView = mPlayerView,
-                        url = url,
-                        imaUrl = mImaUrl,
-                        context = mContext,
-                        player = mPlayer
-                    )
-                } else {
-
-                    HlsMediaSource.Factory(dataSourceFactory).createMediaSource(Uri.parse(url));
-                }
+//                if (mWithIma && !mReintialize) {
+//                    ImaWrapper().init(
+//                        url = url,
+//                        playerView = mPlayerView,
+//                        player = mPlayer,
+//                        imaUrl = mImaUrl,
+//                        context = mContext,
+//                        gaTracker = mGaTracker
+//                    )
+//                } else {
+                    HlsMediaSource.Factory(dataSourceFactory).createMediaSource(mediaItem);
+//                }
             val mediaSourceFactory = DefaultMediaSourceFactory(dataSourceFactory)
             mediaSourceFactory.setAdViewProvider(mPlayerView)
             MyPlayer().init(
@@ -244,7 +246,7 @@ class DaiWrapper(
         when (event!!.getType()) {
             AdEventType.AD_PROGRESS -> {
             }
-            else -> Log.d("", String.format("Event: %s\n", event!!.getType()))
+            else -> Log.d("", String.format("Event: %s\n", event.getType()))
         }
     }
 }
