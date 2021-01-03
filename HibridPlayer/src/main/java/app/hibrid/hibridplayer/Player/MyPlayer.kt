@@ -1,33 +1,38 @@
-package app.hibrid.hibridplayer
+package app.hibrid.hibridplayer.Player
 
+import android.util.Log
+import app.hibrid.hibridplayer.Utils.HibridPlayerSettings
+import app.hibrid.hibridplayer.Utils.SendGaTrackerEvent
 import com.google.android.exoplayer2.ControlDispatcher
 import com.google.android.exoplayer2.Player
 import com.google.android.exoplayer2.SimpleExoPlayer
-import com.google.android.exoplayer2.metadata.id3.TextInformationFrame
 import com.google.android.exoplayer2.source.MediaSource
 import com.google.android.exoplayer2.ui.PlayerView
+import com.google.android.exoplayer2.video.VideoListener
+import com.google.android.gms.analytics.Tracker
 
-class MyPlayer() {
+
+class MyPlayer() : Player.EventListener, VideoListener {
 
     companion object {
         lateinit var mPlayer: SimpleExoPlayer;
         lateinit var mMediaSource: MediaSource;
         lateinit var mPlayerView: PlayerView;
+        lateinit var mGaTracker: Tracker;
+        lateinit var mHibridSettings: HibridPlayerSettings
         var mAutoplay:Boolean=false;
-        private var playerCallback: SampleVideoPlayerCallback? = null
-    }
-    interface SampleVideoPlayerCallback {
-        fun onUserTextReceived(userText: String?)
-        fun onSeek(windowIndex: Int, positionMs: Long)
     }
 
     fun init(
         player: SimpleExoPlayer,
         mediaSource: MediaSource,
         playerView: PlayerView,
-        autoplay: Boolean
+        autoplay: Boolean,
+        gaTracker: Tracker,
+        hibridSettings: HibridPlayerSettings
     ) {
-
+        mGaTracker = gaTracker
+        mHibridSettings = hibridSettings
         mAutoplay = autoplay;
         mPlayer = player;
         mMediaSource = mediaSource;
@@ -48,58 +53,71 @@ class MyPlayer() {
                     player.playWhenReady = playWhenReady
                     return playWhenReady
                 }
+
                 override fun isRewindEnabled(): Boolean {
                     return false
                 }
+
                 override fun isFastForwardEnabled(): Boolean {
                     return false
                 }
+
                 override fun dispatchFastForward(p: Player): Boolean {
                     return false
                 }
+
                 override fun dispatchRewind(p: Player): Boolean {
                     return false
                 }
+
                 override fun dispatchNext(p: Player): Boolean {
                     return false
                 }
+
                 override fun dispatchPrevious(p: Player): Boolean {
                     return false
                 }
+
                 override fun dispatchSeekTo(
                     player: Player,
                     windowIndex: Int,
                     positionMs: Long
                 ): Boolean {
-//                    player.seekTo(windowIndex, positionMs)
                     return false
                 }
+
                 override fun dispatchSetRepeatMode(player: Player, repeatMode: Int): Boolean {
                     return false
                 }
+
                 override fun dispatchSetShuffleModeEnabled(
                     player: Player,
                     shuffleModeEnabled: Boolean
                 ): Boolean {
                     return false
                 }
+
                 override fun dispatchStop(player: Player, reset: Boolean): Boolean {
                     return false
                 }
             })
-        // Register for ID3 events.
-
+        mPlayer.addListener(this)
+        mPlayer.addVideoListener(this)
     }
 
-    fun setSampleVideoPlayerCallback(callback: SampleVideoPlayerCallback) {
-        playerCallback = callback
+    override fun onVideoSizeChanged(
+        width: Int,
+        height: Int,
+        unappliedRotationDegrees: Int,
+        pixelWidthHeightRatio: Float
+    ) {
+        SendGaTrackerEvent(mGaTracker,mHibridSettings.channelKey,"Video Falvor","$width x $height")
+        super.onVideoSizeChanged(width, height, unappliedRotationDegrees, pixelWidthHeightRatio)
     }
 
-    fun enableControls(doEnable: Boolean) {
-        if (doEnable) {
-            mPlayerView.showController()
-        } else {
-            mPlayerView.hideController()
-        }
+    override fun onIsPlayingChanged(isPlaying: Boolean) {
+        var playingTitle = if(isPlaying ) "Play" else "Pause";
+        SendGaTrackerEvent(mGaTracker,channelKey = mHibridSettings.channelKey,title = playingTitle,description = playingTitle)
+        super.onIsPlayingChanged(isPlaying)
     }
 }

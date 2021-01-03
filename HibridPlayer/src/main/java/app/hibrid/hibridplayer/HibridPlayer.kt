@@ -1,22 +1,32 @@
 package app.hibrid.hibridplayer
 
 import android.content.Context
+import android.content.res.Configuration
+import android.media.AudioManager
 import android.net.Uri
+import android.view.View
 import android.view.ViewGroup
-import android.widget.FrameLayout
-import com.google.android.exoplayer2.ExoPlaybackException
-import com.google.android.exoplayer2.MediaItem
-import com.google.android.exoplayer2.Player
-import com.google.android.exoplayer2.SimpleExoPlayer
+import androidx.core.content.ContextCompat.getSystemService
+import app.hibrid.hibridplayer.Player.MyPlayer
+import app.hibrid.hibridplayer.Player.VideoPlayer
+import app.hibrid.hibridplayer.Utils.HibridPlayerSettings
+import app.hibrid.hibridplayer.Utils.SendGaTrackerEvent
+import app.hibrid.hibridplayer.Wrapper.DaiWrapper
+import app.hibrid.hibridplayer.Wrapper.ImaWrapper
+import com.google.android.exoplayer2.*
 import com.google.android.exoplayer2.source.BehindLiveWindowException
 import com.google.android.exoplayer2.source.MediaSource
 import com.google.android.exoplayer2.source.hls.HlsMediaSource
+import com.google.android.exoplayer2.trackselection.AdaptiveTrackSelection
+import com.google.android.exoplayer2.trackselection.DefaultTrackSelector
+import com.google.android.exoplayer2.trackselection.TrackSelection
 import com.google.android.exoplayer2.ui.PlayerView
 import com.google.android.exoplayer2.upstream.DataSource
 import com.google.android.exoplayer2.upstream.DefaultBandwidthMeter
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory
 import com.google.android.exoplayer2.util.Log
 import com.google.android.exoplayer2.util.Util
+import com.google.android.exoplayer2.video.VideoListener
 import com.google.android.gms.analytics.Tracker
 import java.net.CookieHandler
 import java.net.CookieManager
@@ -24,31 +34,69 @@ import java.net.CookiePolicy
 
 
 class HibridPlayer(
-    urlStreaming: String,
-    playerView: PlayerView,
     context: Context,
-    withIma: Boolean,
-    withDai: Boolean,
-    imaUrl: String,
-    adUicontainer: FrameLayout,
-    daiAssetKey: String,
-    daiApiKey: String?,
-    autoplay: Boolean,
-    gaTracker: Tracker?,
-    withGaTracker: Boolean
+    gaTracker: Tracker,
+    hibridSettings: HibridPlayerSettings,
+    includeLayout: View
 ) : Player.EventListener {
     companion object {
+
         fun pause() {
             mPlayerView.keepScreenOn = false
-            if(mPlayerView.player!= null)
-                mPlayerView.player!!.playWhenReady =  false
+            if(mPlayerView.player!= null) {
+                mPlayerView.player!!.playWhenReady = false
+                SendGaTrackerEvent(mGaTracker, mHibridSettings.channelKey, "pause", "pause")
+            }
         }
+        
         fun play() {
             mPlayerView.keepScreenOn = true
-            if(mPlayerView.player!= null)
-                mPlayerView.player!!.playWhenReady =  true
+            if(mPlayerView.player!= null) {
+                mPlayerView.player!!.playWhenReady = true
+                SendGaTrackerEvent(mGaTracker, mHibridSettings.channelKey, "play", "play")
+            }
         }
 
+        fun destroy() {
+            if(mPlayerView.player != null) {
+                mPlayerView.player = null;
+                mPlayerView.player!!.release()
+                SendGaTrackerEvent(mGaTracker, mHibridSettings.channelKey, "ended", "ended")
+            }
+        }
+
+        fun onConfigurationChanged(newConfig: Configuration) {
+            when (newConfig.orientation) {
+                Configuration.ORIENTATION_PORTRAIT -> {
+                    SendGaTrackerEvent(
+                        mGaTracker,
+                        mHibridSettings.channelKey,
+                        "fullscreenchange",
+                        "fullscreen-open"
+                    )
+                }
+                Configuration.ORIENTATION_LANDSCAPE -> {
+                    SendGaTrackerEvent(
+                        mGaTracker,
+                        mHibridSettings.channelKey,
+                        "fullscreenchange",
+                        "fullscreen-open"
+                    )
+                }
+
+            }
+        }
+
+        fun getVolume() {
+            val audioManager = mContext.getSystemService(Context.AUDIO_SERVICE) as AudioManager?
+            var  max :Double =
+                audioManager!!.getStreamMaxVolume(AudioManager.STREAM_MUSIC).toDouble();
+            var current = audioManager!!.getStreamVolume(AudioManager.STREAM_MUSIC).toDouble();
+            var percentage = (current/max * 100).toInt()
+            SendGaTrackerEvent(mGaTracker, mHibridSettings.channelKey,"Volume Changed","$percentage")
+        }
+
+        lateinit var mHibridSettings : HibridPlayerSettings;
         lateinit var mUrlStreaming: String;
         lateinit var mPlayerView: PlayerView;
         lateinit var mContext: Context;
@@ -60,70 +108,62 @@ class HibridPlayer(
         var mWithIma: Boolean = false;
         var mWithDai: Boolean = false;
         var mAutoplay: Boolean = false;
-        var mWithGaTracker: Boolean = false;
-        lateinit var sampleVideoPlayer :VideoPlayer;
+        lateinit var sampleVideoPlayer : VideoPlayer;
         lateinit var player :SimpleExoPlayer ;
-        var mGaTracker :Tracker? =null;
+        lateinit var mGaTracker :Tracker;
+        lateinit var mIncludeLayout: View;
     }
 
     init {
-        mWithGaTracker = withGaTracker;
-        if(gaTracker!=null)
-            mGaTracker = gaTracker;
-        val cookieManager =   CookieManager ()
+        mIncludeLayout =includeLayout;
+        mHibridSettings = hibridSettings;
+        mContext = context;
+        mGaTracker = gaTracker;
+        val cookieManager = CookieManager()
         cookieManager.setCookiePolicy(CookiePolicy.ACCEPT_ORIGINAL_SERVER)
         if (CookieHandler.getDefault() !== cookieManager) {
             CookieHandler.setDefault(cookieManager)
         }
-        mUrlStreaming = urlStreaming;
-        mPlayerView = playerView;
-        mContext = context;
-        mImaUrl = imaUrl;
-        mAdUicontainer = adUicontainer
-        mWithIma = withIma;
-        mWithDai = withDai
-        mdaiApiKey = daiApiKey
-        mDaiAssetKey = daiAssetKey
-        mAutoplay = autoplay
+
+        mPlayerView = includeLayout.findViewById(R.id.hibridPlayerView);
+        mAdUicontainer = includeLayout.findViewById(R.id.adUiContainer);
+        mUrlStreaming = hibridSettings.baseUrl;
+        mImaUrl = mHibridSettings.imaUrl;
+        mWithIma = mHibridSettings.withIma;
+        mWithDai = mHibridSettings.withDai
+        mdaiApiKey = mHibridSettings.daiApiKey
+        mDaiAssetKey = mHibridSettings.daiAssetKey
+        mAutoplay = mHibridSettings.autoplay
         initialize(reintialize = false)
     }
 
     fun initialize(reintialize: Boolean) {
-        player = SimpleExoPlayer.Builder(mContext).build()
-//        player.addListener(this)
-
+        val videoTrackSelectionFactory: TrackSelection.Factory = AdaptiveTrackSelection.Factory()
+        val trackSelector = DefaultTrackSelector(videoTrackSelectionFactory)
+        player = ExoPlayerFactory.newSimpleInstance(mContext, trackSelector)
+        player.addListener(this)
         if (mWithDai) {
            sampleVideoPlayer = VideoPlayer(
                mContext,
                mPlayerView,
                mWithIma,
                mImaUrl,
-               mGaTracker,
-               mWithGaTracker
+               mGaTracker, mHibridSettings
            )
             sampleVideoPlayer.enableControls(false)
-            val sampleAdsWrapper = DaiAdsWrapper(
+            val sampleAdsWrapper = DaiWrapper(
                 mContext,
                 sampleVideoPlayer,
-                mAdUicontainer, mWithIma, mImaUrl, mDaiAssetKey, mdaiApiKey,mGaTracker, mWithGaTracker
+                mAdUicontainer,
+                mWithIma,
+                mImaUrl,
+                mDaiAssetKey,
+                mdaiApiKey,
+                mGaTracker,
+                mHibridSettings
             )
             if(mWithDai)
-            sampleAdsWrapper.requestAndPlayAds()
-//            sampleAdsWrapper.setFallbackUrl(mUrlStreaming)
-//            DaiWrapper(
-//                requested = false,
-//                player = player,
-//                playerView = mPlayerView,
-//                context = mContext,
-//                adUicontainer = mAdUicontainer,
-//                daiApiKey = mdaiApiKey,
-//                daiAssetKey = mDaiAssetKey,
-//                withIma = mWithIma,
-//                imaUrl = mImaUrl,
-//                autoplay = mAutoplay,
-//                reintialize = reintialize,
-//                streamUrl = mUrlStreaming
-//            )
+                sampleAdsWrapper.requestAndPlayAds()
         }
         else {
             val defaultBandwidthMeter = DefaultBandwidthMeter.Builder(mContext).build()
@@ -131,21 +171,19 @@ class HibridPlayer(
                 mContext,
                 Util.getUserAgent(mContext, "Exo2"), defaultBandwidthMeter
             )
-            val url = if(mWithIma && !reintialize) {
-                mImaUrl} else mUrlStreaming
-
+            val url = if(mWithIma && !reintialize) { mImaUrl } else mUrlStreaming
             val mediaItem = MediaItem.fromUri(Uri.parse(url))
-
             mMediaSource =
                 if(mWithIma){
                     ImaWrapper().init(
                         url = mUrlStreaming,
-                        imaUrl = url,
                         playerView = mPlayerView,
-                        context = mContext,
                         player = player,
+                        imaUrl = url,
+                        context = mContext,
                         gaTracker = mGaTracker,
-                        withGaTracker = mWithGaTracker)
+                        hibridSettings = mHibridSettings
+                    )
                 }
                 else
                     HlsMediaSource.Factory(dataSourceFactory).createMediaSource(mediaItem);
@@ -153,7 +191,10 @@ class HibridPlayer(
                 player = player,
                 mediaSource = mMediaSource,
                 playerView = mPlayerView,
-                autoplay = mAutoplay
+                autoplay = mAutoplay,
+                gaTracker = mGaTracker,
+                hibridSettings = mHibridSettings
+
             )
         }
     }
@@ -182,3 +223,5 @@ class HibridPlayer(
     }
 
 }
+
+

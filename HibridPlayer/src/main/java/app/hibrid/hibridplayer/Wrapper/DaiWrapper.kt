@@ -13,10 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package app.hibrid.hibridplayer
+package app.hibrid.hibridplayer.Wrapper
 
 import android.content.Context
 import android.view.ViewGroup
+import app.hibrid.hibridplayer.Player.VideoPlayer
+import app.hibrid.hibridplayer.Utils.HibridPlayerSettings
+import app.hibrid.hibridplayer.Utils.SendGaTrackerEvent
 import com.google.ads.interactivemedia.v3.api.*
 import com.google.ads.interactivemedia.v3.api.AdErrorEvent.AdErrorListener
 import com.google.ads.interactivemedia.v3.api.AdEvent.AdEventType
@@ -25,12 +28,11 @@ import com.google.ads.interactivemedia.v3.api.player.VideoProgressUpdate
 import com.google.ads.interactivemedia.v3.api.player.VideoStreamPlayer
 import com.google.ads.interactivemedia.v3.api.player.VideoStreamPlayer.VideoStreamPlayerCallback
 import com.google.android.exoplayer2.util.Log
-import com.google.android.gms.analytics.HitBuilders
 import com.google.android.gms.analytics.Tracker
 import java.util.*
 
 /** This class adds ad-serving support to Sample HlsVideoPlayer  */
-class DaiAdsWrapper(
+class DaiWrapper(
     private val context: Context,
     private val videoPlayer: VideoPlayer?,
     private val adUiContainer: ViewGroup,
@@ -39,19 +41,20 @@ class DaiAdsWrapper(
     var mDaiAssetKey: String,
     var mdaiApiKey: String?,
     gaTracker: Tracker?,
-    withGaTracker: Boolean
+    hibridSettings: HibridPlayerSettings
 ) : AdErrorListener, AdsLoadedListener, AdEvent.AdEventListener {
 
-    private val sdkFactory: ImaSdkFactory
+    private val sdkFactory: ImaSdkFactory = ImaSdkFactory.getInstance()
     private var adsLoader: AdsLoader? = null
     private var displayContainer: StreamDisplayContainer? = null
     private var streamManager: StreamManager? = null
-    private val playerCallbacks: MutableList<VideoStreamPlayerCallback>
+    private val playerCallbacks: MutableList<VideoStreamPlayerCallback> = ArrayList()
     private var fallbackUrl: String? = null
     private  var mGaTracker : Tracker? = gaTracker;
-    var mWithGaTracker: Boolean = withGaTracker;
+    private  var mHibridSettings: HibridPlayerSettings = hibridSettings;
 
-    private fun createAdsLoader() {
+
+    init {
         val settings = sdkFactory.createImaSdkSettings()
         settings.playerType = PLAYER_TYPE
         val videoStreamPlayer = createVideoStreamPlayer()
@@ -87,17 +90,14 @@ class DaiAdsWrapper(
             }
 
             override fun pause() {
-                // Pause player.
                 videoPlayer!!.pause()
             }
 
             override fun resume() {
-                // Resume player.
                 videoPlayer!!.play()
             }
 
             override fun getVolume(): Int {
-                // Make the video player play at the current device volume.
                 return 100
             }
 
@@ -111,13 +111,13 @@ class DaiAdsWrapper(
 
             override fun onAdBreakStarted() {
                 videoPlayer!!.enableControls(false)
-                sendGaTrackerEvent("onAdBreakStarted","Dai")
+                SendGaTrackerEvent(mGaTracker,mHibridSettings.channelKey,"onAdBreakStarted","Dai")
             }
 
             override fun onAdBreakEnded() {
                 // Re-enable player controls.
                 videoPlayer?.enableControls(true)
-                sendGaTrackerEvent("onAdBreakEnded","Dai")
+                SendGaTrackerEvent(mGaTracker,mHibridSettings.channelKey,"onAdBreakEnded","Dai")
             }
 
             override fun onAdPeriodStarted() {
@@ -145,8 +145,7 @@ class DaiAdsWrapper(
     /** AdErrorListener implementation  */
     override fun onAdError(event: AdErrorEvent) {
         // play fallback URL.
-        sendGaTrackerEvent(title = "ad erroe",description = "Message: "+event.error.message.toString() +
-                " Code :"+ event.error.errorCodeNumber.toString())
+        SendGaTrackerEvent(mGaTracker,mHibridSettings.channelKey,title = "Ad Error", description = "Message: "+event.error.message.toString() + " Code :"+ event.error.errorCodeNumber.toString())
         videoPlayer!!.setStreamUrl(fallbackUrl)
         videoPlayer.enableControls(true)
         videoPlayer.play()
@@ -157,11 +156,14 @@ class DaiAdsWrapper(
         when (event.type) {
             AdEventType.AD_PROGRESS -> {
             }
+            AdEventType.CLICKED-> {
+
+                SendGaTrackerEvent(mGaTracker,mHibridSettings.channelKey,"ad_click","ima_ad")
+            }
             else -> Log.d("TAG",String.format("Event Type: %s\n", event.type))
         }
     }
 
-    /** AdsLoadedListener implementation  */
     override fun onAdsManagerLoaded(event: AdsManagerLoadedEvent) {
         streamManager = event.streamManager
         streamManager!!.addAdErrorListener(this)
@@ -174,27 +176,6 @@ class DaiAdsWrapper(
         private const val PLAYER_TYPE = "DAISamplePlayer"
     }
 
-    fun sendGaTrackerEvent(title:String, description:String){
-        if(mWithGaTracker && mGaTracker!=null )
-        mGaTracker!!.send(
-            HitBuilders.EventBuilder()
-                .setCategory(title).setCategory(description)
-                .build());
 
-        Log.d(title ,description);
-    }
 
-    /**
-     * Creates a new SampleAdsWrapper that implements IMA direct-ad-insertion.
-     *
-     * @param context the app's context.
-     * @param videoPlayer underlying HLS video player.
-     * @param adUiContainer ViewGroup in which to display the ad's UI.
-     */
-    init {
-        sdkFactory = ImaSdkFactory.getInstance()
-        playerCallbacks = ArrayList()
-        createAdsLoader()
-
-    }
 }

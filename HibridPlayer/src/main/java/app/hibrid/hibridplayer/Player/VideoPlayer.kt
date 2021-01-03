@@ -13,23 +13,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package app.hibrid.hibridplayer
+package app.hibrid.hibridplayer.Player
 
 import android.content.Context
 import android.net.Uri
 import android.os.Build
 import android.util.Log
+import app.hibrid.hibridplayer.Wrapper.ImaWrapper
+import app.hibrid.hibridplayer.Utils.HibridPlayerSettings
+import app.hibrid.hibridplayer.Utils.SendGaTrackerEvent
 import com.google.android.exoplayer2.*
 import com.google.android.exoplayer2.metadata.emsg.EventMessage
 import com.google.android.exoplayer2.metadata.id3.TextInformationFrame
 import com.google.android.exoplayer2.source.DefaultMediaSourceFactory
 import com.google.android.exoplayer2.source.MediaSource
+import com.google.android.exoplayer2.source.TrackGroupArray
 import com.google.android.exoplayer2.source.hls.HlsMediaSource
+import com.google.android.exoplayer2.trackselection.AdaptiveTrackSelection
+import com.google.android.exoplayer2.trackselection.DefaultTrackSelector
+import com.google.android.exoplayer2.trackselection.TrackSelection
+import com.google.android.exoplayer2.trackselection.TrackSelectionArray
 import com.google.android.exoplayer2.ui.PlayerView
 import com.google.android.exoplayer2.upstream.DataSource
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory
 import com.google.android.exoplayer2.util.Util
+import com.google.android.exoplayer2.video.VideoListener
 import com.google.android.gms.analytics.Tracker
+
 
 /** A video player that plays HLS or DASH streams using ExoPlayer.  */
 class VideoPlayer(
@@ -38,8 +48,8 @@ class VideoPlayer(
     mWithIma: Boolean,
     mImaUrl: String,
     gaTracker: Tracker?,
-    withGaTracker: Boolean
-) {
+    hibridSettings: HibridPlayerSettings
+) : Player.EventListener, VideoListener {
 
     /** Video player callback to be called when TXXX ID3 tag is received or seeking occurs.  */
     interface SampleVideoPlayerCallback {
@@ -51,7 +61,7 @@ class VideoPlayer(
     private var simpleExoPlayer: SimpleExoPlayer? = null
     private var playerCallback: SampleVideoPlayerCallback? = null
     private var mGaTracker:Tracker? = gaTracker;
-    private var mWithGaTracker = withGaTracker;
+    private var mHibridSettings  = hibridSettings
 
     @C.ContentType
     private var currentlyPlayingStreamType = C.TYPE_OTHER
@@ -59,9 +69,24 @@ class VideoPlayer(
     var isStreamRequested = false
         private set
 
+    override fun onVideoSizeChanged(
+        width: Int,
+        height: Int,
+        unappliedRotationDegrees: Int,
+        pixelWidthHeightRatio: Float
+    ) {
+        SendGaTrackerEvent(mGaTracker,mHibridSettings.channelKey,"Video Falvor","$width x $height")
+        Log.e("Video Size = ","$width x $height")
+        super.onVideoSizeChanged(width, height, unappliedRotationDegrees, pixelWidthHeightRatio)
+    }
     private fun initPlayer() {
         release()
-        simpleExoPlayer = SimpleExoPlayer.Builder(context).build()
+        val videoTrackSelectionFactory: TrackSelection.Factory = AdaptiveTrackSelection.Factory()
+        val trackSelector = DefaultTrackSelector(videoTrackSelectionFactory)
+        simpleExoPlayer = ExoPlayerFactory.newSimpleInstance(context, trackSelector)
+        simpleExoPlayer!!.addVideoListener(this)
+        simpleExoPlayer!!.addListener(this)
+
         playerView.player = simpleExoPlayer
         simpleExoPlayer!!.playWhenReady = true
         playerView.setControlDispatcher(
@@ -149,7 +174,7 @@ class VideoPlayer(
                 context = context,
                 player = simpleExoPlayer!!,
                 gaTracker = mGaTracker,
-                withGaTracker = mWithGaTracker
+                hibridSettings = mHibridSettings
             )
         }
         else{
@@ -255,5 +280,16 @@ class VideoPlayer(
         private const val LOG_TAG = "SampleVideoPlayer"
         private val USER_AGENT =
             "ImaSamplePlayer (Linux;Android " + Build.VERSION.RELEASE + ") ImaSample/1.0"
+    }
+
+    override fun onIsPlayingChanged(isPlaying: Boolean) {
+        val playingTitle = if(isPlaying ) "Play" else "Pause";
+          SendGaTrackerEvent(mGaTracker,channelKey = mHibridSettings.channelKey,title = playingTitle,description = playingTitle)
+        super.onIsPlayingChanged(isPlaying)
+    }
+
+    override fun onPlaybackParametersChanged(playbackParameters: PlaybackParameters) {
+
+        super.onPlaybackParametersChanged(playbackParameters)
     }
 }

@@ -1,8 +1,10 @@
-package app.hibrid.hibridplayer
+package app.hibrid.hibridplayer.Wrapper
 
 import android.content.Context
 import android.net.Uri
 import android.os.Handler
+import app.hibrid.hibridplayer.Utils.HibridPlayerSettings
+import app.hibrid.hibridplayer.Utils.SendGaTrackerEvent
 import com.google.ads.interactivemedia.v3.api.*
 import com.google.android.exoplayer2.MediaItem
 import com.google.android.exoplayer2.SimpleExoPlayer
@@ -11,24 +13,26 @@ import com.google.android.exoplayer2.ext.ima.ImaAdsLoader
 import com.google.android.exoplayer2.source.*
 import com.google.android.exoplayer2.source.ads.AdsMediaSource
 import com.google.android.exoplayer2.source.hls.HlsMediaSource
+import com.google.android.exoplayer2.trackselection.AdaptiveTrackSelection
+import com.google.android.exoplayer2.trackselection.TrackSelection
 import com.google.android.exoplayer2.ui.PlayerView
+import com.google.android.exoplayer2.upstream.BandwidthMeter
 import com.google.android.exoplayer2.upstream.DataSource
 import com.google.android.exoplayer2.upstream.DefaultBandwidthMeter
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory
 import com.google.android.exoplayer2.util.Log
 import com.google.android.exoplayer2.util.Util
-import com.google.android.gms.analytics.HitBuilders
 import com.google.android.gms.analytics.Tracker
-import kotlin.properties.Delegates
+
 
 class ImaWrapper : MediaSourceEventListener, AdsLoader.AdsLoadedListener,
-    AdErrorEvent.AdErrorListener {
+    AdErrorEvent.AdErrorListener, AdEvent.AdEventListener{
     companion object {
         var mGaTracker: Tracker? = null;
-        var mwithGaTracker: Boolean = false;
         var adLoading: AdLoading = AdLoading.None;
         lateinit var mPlayer: SimpleExoPlayer;
         lateinit var mPlayerView: PlayerView;
+        lateinit var mHibridSettings: HibridPlayerSettings;
     }
 
     enum class AdLoading {
@@ -43,30 +47,33 @@ class ImaWrapper : MediaSourceEventListener, AdsLoader.AdsLoadedListener,
         imaUrl: String,
         context: Context,
         gaTracker: Tracker?,
-        withGaTracker: Boolean
+        hibridSettings: HibridPlayerSettings
     ): AdsMediaSource {
+        mHibridSettings = hibridSettings
+
         mPlayer = player;
         mPlayerView = playerView;
-        mwithGaTracker = withGaTracker
         mGaTracker = gaTracker
+
         val mImaUri = Uri.parse(imaUrl);
-        val mImaAdsLoader = ImaAdsLoader.Builder(context).buildForAdTag(mImaUri)
+        val mImaAdsLoader = ImaAdsLoader.Builder(context)
+            .setAdEventListener(this)
+            .setAdErrorListener(this)
+            .buildForAdTag(mImaUri)
+
         val defaultBandwidthMeter = DefaultBandwidthMeter.Builder(context).build()
+
         val dataSourceFactory: DataSource.Factory = DefaultDataSourceFactory(
             context,
             Util.getUserAgent(context, "Exo2"),
             defaultBandwidthMeter
         )
         val uri = Uri.parse(url)
-
         val mediaItem = MediaItem.fromUri(uri);
         val mediaSource: MediaSource =
             HlsMediaSource.Factory(dataSourceFactory).createMediaSource(mediaItem);
         val mediaSourceFactory: ProgressiveMediaSource.Factory =
             ProgressiveMediaSource.Factory(dataSourceFactory)
-
-        Log.d("Hibrid Player", "mediaSourceFactory created");
-
         val adsMediaSource =
             AdsMediaSource(
                 mediaSource,
@@ -81,8 +88,10 @@ class ImaWrapper : MediaSourceEventListener, AdsLoader.AdsLoadedListener,
 
         val adsLoader =
             sdkFactory.createAdsLoader(context, settings, mImaAdsLoader.adDisplayContainer)
+
         adsLoader.addAdsLoadedListener(this)
         mImaAdsLoader.setPlayer(player)
+
         return adsMediaSource;
     }
 
@@ -94,20 +103,16 @@ class ImaWrapper : MediaSourceEventListener, AdsLoader.AdsLoadedListener,
     ) {
         if (mPlayer.isPlayingAd) {
             val value =
-                mPlayer.currentTimeline.getPeriod(mPlayer.currentPeriodIndex, Timeline.Period())
-                    .getAdGroupTimeUs(
-                        mPlayer.currentPeriodIndex
-                    )
+                mPlayer.currentTimeline.getPeriod(mPlayer.currentPeriodIndex, Timeline.Period()).getAdGroupTimeUs(
+                    mPlayer.currentPeriodIndex)
             if (value.toInt() == 0 && adLoading == AdLoading.None) {
-
                 adLoading = AdLoading.Started
-                sendGaTrackerEvent(title = "Preroll ad", description = "Started")
+                SendGaTrackerEvent(mGaTracker, mHibridSettings.channelKey,"Preroll ad","Started")
             }
         } else {
             if (adLoading == AdLoading.Started) {
                 adLoading = AdLoading.None;
-                sendGaTrackerEvent(title = "Preroll ad", description = "Ended")
-
+                SendGaTrackerEvent(mGaTracker, mHibridSettings.channelKey,"Preroll ad","Ended")
             }
         }
         super.onLoadStarted(windowIndex, mediaPeriodId, loadEventInfo, mediaLoadData)
@@ -118,18 +123,19 @@ class ImaWrapper : MediaSourceEventListener, AdsLoader.AdsLoadedListener,
     }
 
     override fun onAdError(p0: AdErrorEvent?) {
-
-    }
-
-    fun sendGaTrackerEvent(title: String, description: String) {
-        if (mwithGaTracker && mGaTracker != null)
-            mGaTracker!!.send(
-                HitBuilders.EventBuilder()
-                    .setCategory(title).setCategory(description)
-                    .build()
-            );
-        Log.d(title ,description);
+        SendGaTrackerEvent(mGaTracker, mHibridSettings.channelKey,"Ima error", p0!!.error.message + " " +  p0!!.error.errorCodeNumber.toString())
     }
 
 
+
+    override fun onAdEvent(event: AdEvent?) {
+        when (event!!.type) {
+            AdEvent.AdEventType.AD_PROGRESS -> {
+            }
+            AdEvent.AdEventType.CLICKED-> {
+                SendGaTrackerEvent(mGaTracker, mHibridSettings.channelKey,"ad_click","dai_ad")
+            }
+            else -> Log.d("TAG",String.format("Event Type: %s\n", event.type))
+        }
+    }
 }
