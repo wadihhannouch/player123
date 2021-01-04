@@ -6,7 +6,6 @@ import android.media.AudioManager
 import android.net.Uri
 import android.view.View
 import android.view.ViewGroup
-import androidx.core.content.ContextCompat.getSystemService
 import app.hibrid.hibridplayer.Player.MyPlayer
 import app.hibrid.hibridplayer.Player.VideoPlayer
 import app.hibrid.hibridplayer.Utils.HibridPlayerSettings
@@ -24,13 +23,16 @@ import com.google.android.exoplayer2.ui.PlayerView
 import com.google.android.exoplayer2.upstream.DataSource
 import com.google.android.exoplayer2.upstream.DefaultBandwidthMeter
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory
-import com.google.android.exoplayer2.util.Log
 import com.google.android.exoplayer2.util.Util
-import com.google.android.exoplayer2.video.VideoListener
 import com.google.android.gms.analytics.Tracker
 import java.net.CookieHandler
 import java.net.CookieManager
 import java.net.CookiePolicy
+import java.util.*
+import java.util.concurrent.Executors
+import java.util.concurrent.Future
+import java.util.concurrent.ScheduledExecutorService
+import java.util.concurrent.TimeUnit
 
 
 class HibridPlayer(
@@ -38,12 +40,15 @@ class HibridPlayer(
     gaTracker: Tracker,
     hibridSettings: HibridPlayerSettings,
     includeLayout: View
-) : Player.EventListener {
-    companion object {
 
+) : Player.EventListener {
+
+    companion object {
+        val executorService: ScheduledExecutorService = Executors.newScheduledThreadPool(1)
         fun pause() {
             mPlayerView.keepScreenOn = false
             if(mPlayerView.player!= null) {
+                executorService.shutdown();
                 mPlayerView.player!!.playWhenReady = false
                 SendGaTrackerEvent(mGaTracker, mHibridSettings.channelKey, "pause", "pause")
             }
@@ -51,13 +56,30 @@ class HibridPlayer(
         
         fun play() {
             mPlayerView.keepScreenOn = true
+            initTimmer()
             if(mPlayerView.player!= null) {
                 mPlayerView.player!!.playWhenReady = true
                 SendGaTrackerEvent(mGaTracker, mHibridSettings.channelKey, "play", "play")
             }
         }
 
+        fun initTimmer(){
+            val actualTask: Runnable? = null
+            executorService.scheduleAtFixedRate(object : Runnable {
+                private val executor = Executors.newSingleThreadExecutor()
+                private var lastExecution: Future<*>? = null
+                override fun run() {
+                    if (lastExecution != null && !lastExecution!!.isDone()) {
+                        SendGaTrackerEvent(mGaTracker, mHibridSettings.channelKey, "ping", "ping")
+                        return
+                    }
+                    lastExecution = executor.submit(actualTask)
+                }
+            }, 15, 15, TimeUnit.SECONDS)
+        }
+
         fun destroy() {
+            executorService.shutdownNow();
             if(mPlayerView.player != null) {
                 mPlayerView.player = null;
                 mPlayerView.player!!.release()
@@ -87,14 +109,24 @@ class HibridPlayer(
             }
         }
 
-        fun getVolume() {
+
+        fun getVolume(): Int {
             val audioManager = mContext.getSystemService(Context.AUDIO_SERVICE) as AudioManager?
             var  max :Double =
                 audioManager!!.getStreamMaxVolume(AudioManager.STREAM_MUSIC).toDouble();
             var current = audioManager!!.getStreamVolume(AudioManager.STREAM_MUSIC).toDouble();
             var percentage = (current/max * 100).toInt()
-            SendGaTrackerEvent(mGaTracker, mHibridSettings.channelKey,"Volume Changed","$percentage")
+
+            SendGaTrackerEvent(
+                mGaTracker,
+                mHibridSettings.channelKey,
+                "VolumeChanged",
+                "$percentage"
+            )
+            return percentage;
         }
+
+
 
         lateinit var mHibridSettings : HibridPlayerSettings;
         lateinit var mUrlStreaming: String;
@@ -114,7 +146,9 @@ class HibridPlayer(
         lateinit var mIncludeLayout: View;
     }
 
+
     init {
+
         mIncludeLayout =includeLayout;
         mHibridSettings = hibridSettings;
         mContext = context;
@@ -200,11 +234,8 @@ class HibridPlayer(
     }
 
     override fun onPlayerError(error: ExoPlaybackException) {
-        Log.e("PLAYER_ACTIVITY_TAG", "SOME ERROR IN PLAYER");
         if (isBehindLiveWindow(error)) {
-//            player.release()
             initialize(reintialize = true)
-//            init(player = mPlayer,mediaSource = mMediaSource,playerView = mPlayerView)
         }
     }
 

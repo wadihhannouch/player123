@@ -11,7 +11,6 @@ class SendGaTrackerEvent (mGaTracker:Tracker?, channelKey:String, title:String, 
                 .setLabel(channelKey).setAction(title).setCategory(description)
                 .build()
         );
-        Log.d(title, description);
     }
 
 }

@@ -17,6 +17,7 @@ package app.hibrid.hibridplayer.Wrapper
 
 import android.content.Context
 import android.view.ViewGroup
+import app.hibrid.hibridplayer.HibridPlayer
 import app.hibrid.hibridplayer.Player.VideoPlayer
 import app.hibrid.hibridplayer.Utils.HibridPlayerSettings
 import app.hibrid.hibridplayer.Utils.SendGaTrackerEvent
@@ -98,7 +99,7 @@ class DaiWrapper(
             }
 
             override fun getVolume(): Int {
-                return 100
+                return HibridPlayer.getVolume()
             }
 
             override fun addCallback(videoStreamPlayerCallback: VideoStreamPlayerCallback) {
@@ -121,17 +122,14 @@ class DaiWrapper(
             }
 
             override fun onAdPeriodStarted() {
-                Log.d("TAG","Ad Period Started\n")
             }
 
             override fun onAdPeriodEnded() {
-                Log.d("TAG","Ad Period Ended\n")
             }
 
             override fun seek(timeMs: Long) {
 
                 videoPlayer!!.seekTo(timeMs)
-                Log.d("TAG","seek")
             }
 
             override fun getContentProgress(): VideoProgressUpdate {
@@ -160,7 +158,7 @@ class DaiWrapper(
 
                 SendGaTrackerEvent(mGaTracker,mHibridSettings.channelKey,"ad_click","ima_ad")
             }
-            else -> Log.d("TAG",String.format("Event Type: %s\n", event.type))
+            else -> print(String.format("Event Type: %s\n", event.type))
         }
     }
 
@@ -171,9 +169,8 @@ class DaiWrapper(
         streamManager!!.init()
     }
 
-
     companion object {
-        private const val PLAYER_TYPE = "DAISamplePlayer"
+        private const val PLAYER_TYPE = "HibridPlayer"
     }
 
 

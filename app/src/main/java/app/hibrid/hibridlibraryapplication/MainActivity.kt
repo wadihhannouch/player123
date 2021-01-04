@@ -19,13 +19,12 @@ class MainActivity : HibridActivity() {
         val settings = HibridPlayerSettings(
             channelKey = "Khaleejiya",
             autoplay = true,
-            daiAssetKey = "sN_IYUG8STe1ZzhIIE_ksA",
-//            daiAssetKey = "oAIUDEIWQ8ubHCUcRHxL3A",
-//            daiApiKey = "1ED69721F0ED78979BB9DAC0745CF86413ECCA98BEBDCD35F3C5E1AAD8D9939C",
-            imaUrl = "https://pubads.g.doubleclick.net/gampad/ads?sz=640x480&iu=/124319096/external/ad_rule_samples&ciu_szs=300x250&ad_rule=1&impl=s&gdfp_req=1&env=vp&output=vmap&unviewed_position_start=1&cust_params=deployment%3Ddevsite%26sample_ar%3Dpreonly&cmsid=496&vid=short_onecue&correlator=",
+            daiAssetKey = "daiassetkey",
+            daiApiKey = "daiapikey",
+            imaUrl = "imaUrl",
             withIma = true,
             withDai = true,
-            baseUrl = "https://live.hibridcdn.net/rotana/khaleejiya_mabr/playlist.m3u8"
+            baseUrl = "baseUrl"
         )
         HibridPlayer(
             context = this,

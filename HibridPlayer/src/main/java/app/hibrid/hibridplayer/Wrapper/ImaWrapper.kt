@@ -135,7 +135,7 @@ class ImaWrapper : MediaSourceEventListener, AdsLoader.AdsLoadedListener,
             AdEvent.AdEventType.CLICKED-> {
                 SendGaTrackerEvent(mGaTracker, mHibridSettings.channelKey,"ad_click","dai_ad")
             }
-            else -> Log.d("TAG",String.format("Event Type: %s\n", event.type))
+            else -> print(String.format("Event Type: %s\n", event.type))
         }
     }
 }

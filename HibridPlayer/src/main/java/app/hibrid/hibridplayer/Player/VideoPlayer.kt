@@ -19,6 +19,7 @@ import android.content.Context
 import android.net.Uri
 import android.os.Build
 import android.util.Log
+import app.hibrid.hibridplayer.HibridPlayer
 import app.hibrid.hibridplayer.Wrapper.ImaWrapper
 import app.hibrid.hibridplayer.Utils.HibridPlayerSettings
 import app.hibrid.hibridplayer.Utils.SendGaTrackerEvent
@@ -76,7 +77,6 @@ class VideoPlayer(
         pixelWidthHeightRatio: Float
     ) {
         SendGaTrackerEvent(mGaTracker,mHibridSettings.channelKey,"Video Falvor","$width x $height")
-        Log.e("Video Size = ","$width x $height")
         super.onVideoSizeChanged(width, height, unappliedRotationDegrees, pixelWidthHeightRatio)
     }
     private fun initPlayer() {
@@ -86,7 +86,6 @@ class VideoPlayer(
         simpleExoPlayer = ExoPlayerFactory.newSimpleInstance(context, trackSelector)
         simpleExoPlayer!!.addVideoListener(this)
         simpleExoPlayer!!.addListener(this)
-
         playerView.player = simpleExoPlayer
         simpleExoPlayer!!.playWhenReady = true
         playerView.setControlDispatcher(
@@ -98,31 +97,24 @@ class VideoPlayer(
                     player.playWhenReady = playWhenReady
                     return playWhenReady
                 }
-
                 override fun isRewindEnabled(): Boolean {
                     return false
                 }
-
                 override fun isFastForwardEnabled(): Boolean {
                     return false
                 }
-
                 override fun dispatchFastForward(p: Player): Boolean {
                     return false
                 }
-
                 override fun dispatchRewind(p: Player): Boolean {
                     return false
                 }
-
                 override fun dispatchNext(p: Player): Boolean {
                     return false
                 }
-
                 override fun dispatchPrevious(p: Player): Boolean {
                     return false
                 }
-
                 override fun dispatchSeekTo(
                     player: Player,
                     windowIndex: Int,
@@ -130,18 +122,15 @@ class VideoPlayer(
                 ): Boolean {
                     return true
                 }
-
                 override fun dispatchSetRepeatMode(player: Player, repeatMode: Int): Boolean {
                     return false
                 }
-
                 override fun dispatchSetShuffleModeEnabled(
                     player: Player,
                     shuffleModeEnabled: Boolean
                 ): Boolean {
                     return false
                 }
-
                 override fun dispatchStop(player: Player, reset: Boolean): Boolean {
                     return false
                 }
@@ -154,13 +143,11 @@ class VideoPlayer(
             return
         }
         initPlayer()
-
         val dataSourceFactory: DataSource.Factory = DefaultDataSourceFactory(
             context, USER_AGENT
         )
         val mediaSourceFactory = DefaultMediaSourceFactory(dataSourceFactory)
         mediaSourceFactory.setAdViewProvider(playerView)
-        // Create the MediaItem to play, specifying the content URI.
         val contentUri = Uri.parse(streamUrl)
         val mediaItem = MediaItem.Builder().setUri(contentUri).build()
         val mediaSource: MediaSource
@@ -183,21 +170,18 @@ class VideoPlayer(
 
         simpleExoPlayer!!.setMediaSource(mediaSource)
         simpleExoPlayer!!.prepare()
-        // Register for ID3 events.
         simpleExoPlayer!!.addMetadataOutput { metadata ->
             for (i in 0 until metadata.length()) {
                 val entry = metadata[i]
                 if (entry is TextInformationFrame) {
                     val textFrame = entry
                     if ("TXXX" == textFrame.id) {
-                        Log.d(LOG_TAG, "Received user text: " + textFrame.value)
                         if (playerCallback != null) {
                             playerCallback!!.onUserTextReceived(textFrame.value)
                         }
                     }
                 } else if (entry is EventMessage) {
                     val eventMessageValue = String(entry.messageData)
-                    Log.d(LOG_TAG, "Received user text: $eventMessageValue")
                     if (playerCallback != null) {
                         playerCallback!!.onUserTextReceived(eventMessageValue)
                     }
@@ -240,10 +224,6 @@ class VideoPlayer(
         playerCallback = callback
     }
 
-    // Adjust position to be relative to start of period rather than window, to account for DVR
-    // window.
-// This case is when the dash stream has a format of non-sliding window.
-    /** Returns current offset position of the playhead in milliseconds for DASH and HLS stream.  */
     val currentOffsetPositionMs: Long
         get() {
             val currentTimeline = simpleExoPlayer!!.currentTimeline
@@ -273,23 +253,17 @@ class VideoPlayer(
                 return simpleExoPlayer!!.currentPosition - period.positionInWindowMs
             }
         }
+
     val duration: Long
         get() = simpleExoPlayer!!.duration
 
     companion object {
-        private const val LOG_TAG = "SampleVideoPlayer"
-        private val USER_AGENT =
-            "ImaSamplePlayer (Linux;Android " + Build.VERSION.RELEASE + ") ImaSample/1.0"
+        private val USER_AGENT = "ImaHibridPlayer"
     }
 
     override fun onIsPlayingChanged(isPlaying: Boolean) {
         val playingTitle = if(isPlaying ) "Play" else "Pause";
           SendGaTrackerEvent(mGaTracker,channelKey = mHibridSettings.channelKey,title = playingTitle,description = playingTitle)
         super.onIsPlayingChanged(isPlaying)
-    }
-
-    override fun onPlaybackParametersChanged(playbackParameters: PlaybackParameters) {
-
-        super.onPlaybackParametersChanged(playbackParameters)
     }
 }
