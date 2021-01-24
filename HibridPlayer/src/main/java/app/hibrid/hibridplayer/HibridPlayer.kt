@@ -1,5 +1,6 @@
 package app.hibrid.hibridplayer
 
+import android.app.Application
 import android.content.Context
 import android.content.res.Configuration
 import android.media.AudioManager
@@ -8,6 +9,7 @@ import android.view.View
 import android.view.ViewGroup
 import app.hibrid.hibridplayer.Player.MyPlayer
 import app.hibrid.hibridplayer.Player.VideoPlayer
+import app.hibrid.hibridplayer.Utils.HibridApplication
 import app.hibrid.hibridplayer.Utils.HibridPlayerSettings
 import app.hibrid.hibridplayer.Utils.SendGaTrackerEvent
 import app.hibrid.hibridplayer.Wrapper.DaiWrapper
@@ -28,7 +30,6 @@ import com.google.android.gms.analytics.Tracker
 import java.net.CookieHandler
 import java.net.CookieManager
 import java.net.CookiePolicy
-import java.util.*
 import java.util.concurrent.Executors
 import java.util.concurrent.Future
 import java.util.concurrent.ScheduledExecutorService
@@ -37,9 +38,10 @@ import java.util.concurrent.TimeUnit
 
 class HibridPlayer(
     context: Context,
-    gaTracker: Tracker,
+
     hibridSettings: HibridPlayerSettings,
-    includeLayout: View
+    includeLayout: View,
+    application: HibridApplication
 
 ) : Player.EventListener {
 
@@ -53,7 +55,7 @@ class HibridPlayer(
                 SendGaTrackerEvent(mGaTracker, mHibridSettings.channelKey, "pause", "pause")
             }
         }
-        
+
         fun play() {
             mPlayerView.keepScreenOn = true
             initTimmer()
@@ -114,7 +116,7 @@ class HibridPlayer(
             val audioManager = mContext.getSystemService(Context.AUDIO_SERVICE) as AudioManager?
             var  max :Double =
                 audioManager!!.getStreamMaxVolume(AudioManager.STREAM_MUSIC).toDouble();
-            var current = audioManager!!.getStreamVolume(AudioManager.STREAM_MUSIC).toDouble();
+            var current = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC).toDouble();
             var percentage = (current/max * 100).toInt()
 
             SendGaTrackerEvent(
@@ -149,10 +151,10 @@ class HibridPlayer(
 
     init {
 
+        mGaTracker = application.getDefaultTracker("UA-61148841-2")!!;
         mIncludeLayout =includeLayout;
         mHibridSettings = hibridSettings;
         mContext = context;
-        mGaTracker = gaTracker;
         val cookieManager = CookieManager()
         cookieManager.setCookiePolicy(CookiePolicy.ACCEPT_ORIGINAL_SERVER)
         if (CookieHandler.getDefault() !== cookieManager) {

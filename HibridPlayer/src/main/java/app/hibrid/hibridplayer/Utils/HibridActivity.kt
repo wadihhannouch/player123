@@ -1,9 +1,12 @@
 package app.hibrid.hibridplayer.Utils
 
 import android.content.res.Configuration
+import android.os.Bundle
+import android.os.PersistableBundle
 import android.view.KeyEvent
 import androidx.appcompat.app.AppCompatActivity
 import app.hibrid.hibridplayer.HibridPlayer
+import com.google.android.gms.analytics.Tracker
 
 open class HibridActivity : AppCompatActivity() {
 

@@ -50,7 +50,7 @@ class DaiWrapper(
     private var displayContainer: StreamDisplayContainer? = null
     private var streamManager: StreamManager? = null
     private val playerCallbacks: MutableList<VideoStreamPlayerCallback> = ArrayList()
-    private var fallbackUrl: String? = null
+    private var fallbackUrl: String? = hibridSettings.baseUrl
     private  var mGaTracker : Tracker? = gaTracker;
     private  var mHibridSettings: HibridPlayerSettings = hibridSettings;
 

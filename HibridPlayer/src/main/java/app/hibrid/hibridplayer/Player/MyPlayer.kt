@@ -1,6 +1,5 @@
 package app.hibrid.hibridplayer.Player
 
-import android.util.Log
 import app.hibrid.hibridplayer.Utils.HibridPlayerSettings
 import app.hibrid.hibridplayer.Utils.SendGaTrackerEvent
 import com.google.android.exoplayer2.ControlDispatcher

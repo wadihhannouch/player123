@@ -4,6 +4,7 @@ import android.os.Bundle
 import app.hibrid.hibridplayer.HibridPlayer
 import app.hibrid.hibridplayer.Utils.HibridPlayerSettings
 import app.hibrid.hibridplayer.Utils.HibridActivity
+import app.hibrid.hibridplayer.Utils.HibridApplication
 import kotlinx.android.synthetic.main.activity_main.*
 
 class MainActivity : HibridActivity() {
@@ -13,24 +14,24 @@ class MainActivity : HibridActivity() {
         setContentView(R.layout.activity_main)
 
 
-        val application = application as AnalyticsApplication
-        val mTracker = application.getDefaultTracker()
 
+        val myApplication = application as HibridApplication
         val settings = HibridPlayerSettings(
             channelKey = "Khaleejiya",
             autoplay = true,
-            daiAssetKey = "daiassetkey",
-            daiApiKey = "daiapikey",
-            imaUrl = "imaUrl",
+            daiAssetKey = "oAIUDEIWQ8ubHCUcRHxL3A",
+            daiApiKey = "1ED69721F0ED78979BB9DAC0745CF86413ECCA98BEBDCD35F3C5E1AAD8D9939C",
+            imaUrl = "https://tinyurl.com/y8ygf7qn",
             withIma = true,
             withDai = true,
-            baseUrl = "baseUrl"
+            baseUrl = "https://multiplatform-f.akamaihd.net/i/multi/will/bunny/big_buck_bunny_,640x360_400,640x360_700,640x360_1000,950x540_1500,.f4v.csmil/master.m3u8"
         )
+
         HibridPlayer(
             context = this,
             hibridSettings = settings,
-            gaTracker = mTracker!!,
-            includeLayout = includeLayout
+            includeLayout = includeLayout,
+            application = myApplication
         )
     }
 

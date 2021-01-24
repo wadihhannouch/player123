@@ -8,7 +8,7 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:name="AnalyticsApplication"
+        android:name="app.hibrid.hibridplayer.Utils.HibridApplication"
         android:theme="@style/Theme.HibridLibraryApplication">
         <activity
             android:name=".MainActivity"
@@ -17,7 +17,6 @@
             android:theme="@style/Theme.HibridLibraryApplication">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
