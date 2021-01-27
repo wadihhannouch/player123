@@ -1,6 +1,5 @@
 package app.hibrid.hibridplayer
 
-import android.app.Application
 import android.content.Context
 import android.content.res.Configuration
 import android.media.AudioManager
@@ -9,6 +8,7 @@ import android.view.View
 import android.view.ViewGroup
 import app.hibrid.hibridplayer.Player.MyPlayer
 import app.hibrid.hibridplayer.Player.VideoPlayer
+import app.hibrid.hibridplayer.Utils.HashUtils
 import app.hibrid.hibridplayer.Utils.HibridApplication
 import app.hibrid.hibridplayer.Utils.HibridPlayerSettings
 import app.hibrid.hibridplayer.Utils.SendGaTrackerEvent
@@ -128,8 +128,6 @@ class HibridPlayer(
             return percentage;
         }
 
-
-
         lateinit var mHibridSettings : HibridPlayerSettings;
         lateinit var mUrlStreaming: String;
         lateinit var mPlayerView: PlayerView;
@@ -150,6 +148,10 @@ class HibridPlayer(
 
 
     init {
+
+        var timestamp = System.currentTimeMillis();
+        var lisenceKey = "MvbyQ6F4Lr2s3FU6ZMgHT92stjkFg8qeNLJwF5FJh5tJauQennNFjyaUQywdrwGR";
+        val myHexHash: String = HashUtils.getSHA1(timestamp.toString() + lisenceKey);
 
         mGaTracker = application.getDefaultTracker("UA-61148841-2")!!;
         mIncludeLayout =includeLayout;
