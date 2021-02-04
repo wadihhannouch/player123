@@ -13,8 +13,6 @@ class MainActivity : HibridActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-
-
         val myApplication = application as HibridApplication
         val settings = HibridPlayerSettings(
             channelKey = "Khaleejiya",
@@ -24,7 +22,7 @@ class MainActivity : HibridActivity() {
             imaUrl = "https://tinyurl.com/y8ygf7qn",
             withIma = true,
             withDai = true,
-            baseUrl = "https://multiplatform-f.akamaihd.net/i/multi/will/bunny/big_buck_bunny_,640x360_400,640x360_700,640x360_1000,950x540_1500,.f4v.csmil/master.m3u8"
+            baseUrl = "https://demo.unified-streaming.com/video/tears-of-steel/tears-of-steel.ism/.m3u8"
         )
 
         HibridPlayer(
@@ -34,5 +32,4 @@ class MainActivity : HibridActivity() {
             application = myApplication
         )
     }
-
 }

@@ -68,6 +68,7 @@ class ImaWrapper : MediaSourceEventListener, AdsLoader.AdsLoadedListener,
             Util.getUserAgent(context, "Exo2"),
             defaultBandwidthMeter
         )
+
         val uri = Uri.parse(url)
         val mediaItem = MediaItem.fromUri(uri);
         val mediaSource: MediaSource =
