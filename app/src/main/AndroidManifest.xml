@@ -9,6 +9,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:name=".ViApp"
+        android:usesCleartextTraffic="true"
         android:theme="@style/Theme.HibridLibraryApplication">
         <activity
             android:name=".MainActivity"

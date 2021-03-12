@@ -9,5 +9,7 @@ data class PlayerSettings (
     @SerializedName("signature") val signature : Signature,
     @SerializedName("daiEnabled") val daiEnabled : Boolean,
     @SerializedName("imaEnabled") val imaEnabled : Boolean,
+    @SerializedName("err") val err : Int,
+    @SerializedName("message") val message : String,
     @SerializedName("withCredentials") val withCredentials : Boolean
 )
