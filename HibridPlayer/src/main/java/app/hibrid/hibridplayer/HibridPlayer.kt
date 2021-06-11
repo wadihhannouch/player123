@@ -53,24 +53,20 @@ class HibridPlayer(
 
 ) : Player.EventListener, Callback<PlayerSettings?> {
 
-
     override fun onResponse(
         call: Call<PlayerSettings?>,
         response: retrofit2.Response<PlayerSettings?>
     ) {
         if (response.isSuccessful) {
-            var settings= response.body()!!
+            val settings= response.body()!!
             parseSettings(settings);
         } else {
             Log.e("Request ", call.request().toString());
-
             Log.e("message response", response.message())
         }
     }
 
     private fun parseSettings(settings: PlayerSettings) {
-
-
         mGaTracker = mApplication.getDefaultTracker(settings.signature.gaTrackingId)!!;
         mUrlStreaming = settings.signature.streamUrl;
         mImaUrl = settings.signature.imaAdTag;
@@ -78,6 +74,7 @@ class HibridPlayer(
         mWithDai = settings.daiEnabled;
         mdaiApiKey = settings.signature.daiApiKey
         mDaiAssetKey = settings.signature.daiAssetKey
+        mHibridSettings.baseUrl =settings.signature.streamUrl
         mAutoplay = mHibridSettings.autoplay
         initialize(reintialize = false)
     }
@@ -188,7 +185,6 @@ class HibridPlayer(
         lateinit var mApplication: HibridApplication;
     }
     init {
-
         mApplication = application;
         mIncludeLayout = includeLayout;
         mHibridSettings = hibridSettings;
@@ -202,16 +198,14 @@ class HibridPlayer(
             CookieHandler.setDefault(cookieManager)
         }
 
-        var channelKey = "rotana-cinema"
+        var channelKey = mHibridSettings.channelKey
         val timestamp = (System.currentTimeMillis() / 1000).toInt();
         Log.d("timestamp", timestamp.toString());
-        val lisenceKey = "MvbyQ6F4Lr2s3FU6ZMgHT92stjkFg8qeNLJwF5FJh5tJauQennNFjyaUQywdrwGR";
+        val lisenceKey = mHibridSettings.lisence
         val myHexHash: String = HashUtils.getSHA1(timestamp.toString() + lisenceKey);
         var controller = Controller()
         var x = controller.start(channelKey, timestamp.toString(), myHexHash);
         x.enqueue(this);
-
-
 
     }
 
