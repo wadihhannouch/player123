@@ -1,11 +1,16 @@
 package app.hibrid.hibridplayer.Player
 
+import android.R
 import app.hibrid.hibridplayer.Utils.HibridPlayerSettings
 import app.hibrid.hibridplayer.Utils.SendGaTrackerEvent
+import com.google.android.exoplayer2.C
 import com.google.android.exoplayer2.ControlDispatcher
 import com.google.android.exoplayer2.Player
 import com.google.android.exoplayer2.SimpleExoPlayer
 import com.google.android.exoplayer2.source.MediaSource
+import com.google.android.exoplayer2.source.TrackGroupArray
+import com.google.android.exoplayer2.trackselection.MappingTrackSelector.MappedTrackInfo
+import com.google.android.exoplayer2.trackselection.TrackSelectionArray
 import com.google.android.exoplayer2.ui.PlayerView
 import com.google.android.exoplayer2.video.VideoListener
 import com.google.android.gms.analytics.Tracker
@@ -20,6 +25,16 @@ class MyPlayer() : Player.EventListener, VideoListener {
         lateinit var mGaTracker: Tracker;
         lateinit var mHibridSettings: HibridPlayerSettings
         var mAutoplay:Boolean=false;
+    }
+
+    override fun onTracksChanged(
+        trackGroups: TrackGroupArray,
+        trackSelections: TrackSelectionArray
+    ) {
+        if(trackGroups.isEmpty){
+
+        }
+//        super.onTracksChanged(trackGroups, trackSelections)
     }
 
     fun init(
@@ -99,6 +114,7 @@ class MyPlayer() : Player.EventListener, VideoListener {
                 override fun dispatchStop(player: Player, reset: Boolean): Boolean {
                     return false
                 }
+
             })
         mPlayer.addListener(this)
         mPlayer.addVideoListener(this)
@@ -110,13 +126,23 @@ class MyPlayer() : Player.EventListener, VideoListener {
         unappliedRotationDegrees: Int,
         pixelWidthHeightRatio: Float
     ) {
-        SendGaTrackerEvent(mGaTracker,mHibridSettings.channelKey,"Video Falvor","$width x $height")
+        SendGaTrackerEvent(
+            mGaTracker,
+            mHibridSettings.channelKey,
+            "Video Falvor",
+            "$width x $height"
+        )
         super.onVideoSizeChanged(width, height, unappliedRotationDegrees, pixelWidthHeightRatio)
     }
 
     override fun onIsPlayingChanged(isPlaying: Boolean) {
         var playingTitle = if(isPlaying ) "Play" else "Pause";
-        SendGaTrackerEvent(mGaTracker,channelKey = mHibridSettings.channelKey,title = playingTitle,description = playingTitle)
+        SendGaTrackerEvent(
+            mGaTracker,
+            channelKey = mHibridSettings.channelKey,
+            title = playingTitle,
+            description = playingTitle
+        )
         super.onIsPlayingChanged(isPlaying)
     }
 }

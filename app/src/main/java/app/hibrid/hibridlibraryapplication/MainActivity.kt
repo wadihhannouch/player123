@@ -14,9 +14,12 @@ class MainActivity : HibridActivity() {
         setContentView(R.layout.activity_main)
         val myApplication = application as HibridApplication
         val settings = HibridPlayerSettings(
-            channelKey = "rotana-cinema",
+            autoplay = true,
+            channelKey = "rotana-drama",
             lisence = "MvbyQ6F4Lr2s3FU6ZMgHT92stjkFg8qeNLJwF5FJh5tJauQennNFjyaUQywdrwGR"
         )
+
+
 
         HibridPlayer(
             context = this,

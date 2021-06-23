@@ -28,7 +28,7 @@ import com.google.ads.interactivemedia.v3.api.AdsLoader.AdsLoadedListener
 import com.google.ads.interactivemedia.v3.api.player.VideoProgressUpdate
 import com.google.ads.interactivemedia.v3.api.player.VideoStreamPlayer
 import com.google.ads.interactivemedia.v3.api.player.VideoStreamPlayer.VideoStreamPlayerCallback
-import com.google.android.exoplayer2.util.Log
+import com.google.android.exoplayer2.upstream.DefaultBandwidthMeter
 import com.google.android.gms.analytics.Tracker
 import java.util.*
 
@@ -42,7 +42,8 @@ class DaiWrapper(
     var mDaiAssetKey: String,
     var mdaiApiKey: String?,
     gaTracker: Tracker?,
-    hibridSettings: HibridPlayerSettings
+    hibridSettings: HibridPlayerSettings,
+    defaultBandwidthMeter: DefaultBandwidthMeter
 ) : AdErrorListener, AdsLoadedListener, AdEvent.AdEventListener {
 
     private val sdkFactory: ImaSdkFactory = ImaSdkFactory.getInstance()
@@ -53,6 +54,7 @@ class DaiWrapper(
     private var fallbackUrl: String? = hibridSettings.baseUrl
     private  var mGaTracker : Tracker? = gaTracker;
     private  var mHibridSettings: HibridPlayerSettings = hibridSettings;
+    private  var mDefaultBandwidthMeter: DefaultBandwidthMeter = defaultBandwidthMeter;
 
 
     init {
@@ -86,8 +88,8 @@ class DaiWrapper(
     private fun createVideoStreamPlayer(): VideoStreamPlayer {
         return object : VideoStreamPlayer {
             override fun loadUrl(url: String, subtitles: List<HashMap<String, String>>) {
-                videoPlayer!!.setStreamUrl(url)
-                videoPlayer.play()
+                    videoPlayer!!.setStreamUrl(url)
+                    videoPlayer.play()
             }
 
             override fun pause() {

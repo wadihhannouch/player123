@@ -13,14 +13,10 @@ import com.google.android.exoplayer2.ext.ima.ImaAdsLoader
 import com.google.android.exoplayer2.source.*
 import com.google.android.exoplayer2.source.ads.AdsMediaSource
 import com.google.android.exoplayer2.source.hls.HlsMediaSource
-import com.google.android.exoplayer2.trackselection.AdaptiveTrackSelection
-import com.google.android.exoplayer2.trackselection.TrackSelection
 import com.google.android.exoplayer2.ui.PlayerView
-import com.google.android.exoplayer2.upstream.BandwidthMeter
 import com.google.android.exoplayer2.upstream.DataSource
 import com.google.android.exoplayer2.upstream.DefaultBandwidthMeter
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory
-import com.google.android.exoplayer2.util.Log
 import com.google.android.exoplayer2.util.Util
 import com.google.android.gms.analytics.Tracker
 
@@ -31,6 +27,7 @@ class ImaWrapper : MediaSourceEventListener, AdsLoader.AdsLoadedListener,
         var mGaTracker: Tracker? = null;
         var adLoading: AdLoading = AdLoading.None;
         lateinit var mPlayer: SimpleExoPlayer;
+        lateinit var mDefaultBandwidthMeter: DefaultBandwidthMeter;
         lateinit var mPlayerView: PlayerView;
         lateinit var mHibridSettings: HibridPlayerSettings;
     }
@@ -47,10 +44,11 @@ class ImaWrapper : MediaSourceEventListener, AdsLoader.AdsLoadedListener,
         imaUrl: String,
         context: Context,
         gaTracker: Tracker?,
-        hibridSettings: HibridPlayerSettings
+        hibridSettings: HibridPlayerSettings,
+        defaultBandwidthMeter: DefaultBandwidthMeter
     ): AdsMediaSource {
         mHibridSettings = hibridSettings
-
+        mDefaultBandwidthMeter = defaultBandwidthMeter
         mPlayer = player;
         mPlayerView = playerView;
         mGaTracker = gaTracker
@@ -61,18 +59,19 @@ class ImaWrapper : MediaSourceEventListener, AdsLoader.AdsLoadedListener,
             .setAdErrorListener(this)
             .buildForAdTag(mImaUri)
 
-        val defaultBandwidthMeter = DefaultBandwidthMeter.Builder(context).build()
+
 
         val dataSourceFactory: DataSource.Factory = DefaultDataSourceFactory(
             context,
             Util.getUserAgent(context, "Exo2"),
-            defaultBandwidthMeter
+            mDefaultBandwidthMeter
         )
 
         val uri = Uri.parse(url)
         val mediaItem = MediaItem.fromUri(uri);
         val mediaSource: MediaSource =
             HlsMediaSource.Factory(dataSourceFactory).createMediaSource(mediaItem);
+//            SsMediaSource.Factory(dataSourceFactory).createMediaSource(mediaItem);
         val mediaSourceFactory: ProgressiveMediaSource.Factory =
             ProgressiveMediaSource.Factory(dataSourceFactory)
         val adsMediaSource =

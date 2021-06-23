@@ -1,6 +1,5 @@
 package app.hibrid.hibridplayer
 
-import android.app.Application
 import android.content.Context
 import android.content.res.Configuration
 import android.media.AudioManager
@@ -10,7 +9,10 @@ import android.view.ViewGroup
 import app.hibrid.hibridplayer.Api.Controller
 import app.hibrid.hibridplayer.Player.MyPlayer
 import app.hibrid.hibridplayer.Player.VideoPlayer
-import app.hibrid.hibridplayer.Utils.*
+import app.hibrid.hibridplayer.Utils.HashUtils
+import app.hibrid.hibridplayer.Utils.HibridApplication
+import app.hibrid.hibridplayer.Utils.HibridPlayerSettings
+import app.hibrid.hibridplayer.Utils.SendGaTrackerEvent
 import app.hibrid.hibridplayer.Wrapper.DaiWrapper
 import app.hibrid.hibridplayer.Wrapper.ImaWrapper
 import app.hibrid.hibridplayer.model.PlayerSettings
@@ -28,20 +30,15 @@ import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory
 import com.google.android.exoplayer2.util.Log
 import com.google.android.exoplayer2.util.Util
 import com.google.android.gms.analytics.Tracker
-import com.google.gson.Gson
-import com.google.gson.JsonParser
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.Response
-import okhttp3.ResponseBody
-import org.json.JSONObject
 import retrofit2.Call
 import retrofit2.Callback
 import java.net.CookieHandler
 import java.net.CookieManager
 import java.net.CookiePolicy
-import java.util.*
-import java.util.concurrent.*
+import java.util.concurrent.Executors
+import java.util.concurrent.Future
+import java.util.concurrent.ScheduledExecutorService
+import java.util.concurrent.TimeUnit
 
 
 class HibridPlayer(
@@ -53,6 +50,31 @@ class HibridPlayer(
 
 ) : Player.EventListener, Callback<PlayerSettings?> {
 
+
+    init {
+        mApplication = application;
+        mIncludeLayout = includeLayout;
+        mHibridSettings = hibridSettings;
+        mPlayerView = mIncludeLayout.findViewById(R.id.hibridPlayerView);
+        mAdUicontainer = mIncludeLayout.findViewById(R.id.adUiContainer);
+        mContext = context;
+
+        val cookieManager = CookieManager()
+        cookieManager.setCookiePolicy(CookiePolicy.ACCEPT_ORIGINAL_SERVER)
+        if (CookieHandler.getDefault() !== cookieManager) {
+            CookieHandler.setDefault(cookieManager)
+        }
+
+        var channelKey = mHibridSettings.channelKey
+        val timestamp = (System.currentTimeMillis() / 1000).toInt();
+        Log.d("timestamp", timestamp.toString());
+        val lisenceKey = mHibridSettings.lisence
+        val myHexHash: String = HashUtils.getSHA1(timestamp.toString() + lisenceKey);
+        var controller = Controller()
+        var x = controller.start(channelKey, timestamp.toString(), myHexHash);
+        x.enqueue(this);
+
+    }
     override fun onResponse(
         call: Call<PlayerSettings?>,
         response: retrofit2.Response<PlayerSettings?>
@@ -184,43 +206,24 @@ class HibridPlayer(
         lateinit var mIncludeLayout: View;
         lateinit var mApplication: HibridApplication;
     }
-    init {
-        mApplication = application;
-        mIncludeLayout = includeLayout;
-        mHibridSettings = hibridSettings;
-        mPlayerView = mIncludeLayout.findViewById(R.id.hibridPlayerView);
-        mAdUicontainer = mIncludeLayout.findViewById(R.id.adUiContainer);
-        mContext = context;
-
-        val cookieManager = CookieManager()
-        cookieManager.setCookiePolicy(CookiePolicy.ACCEPT_ORIGINAL_SERVER)
-        if (CookieHandler.getDefault() !== cookieManager) {
-            CookieHandler.setDefault(cookieManager)
-        }
-
-        var channelKey = mHibridSettings.channelKey
-        val timestamp = (System.currentTimeMillis() / 1000).toInt();
-        Log.d("timestamp", timestamp.toString());
-        val lisenceKey = mHibridSettings.lisence
-        val myHexHash: String = HashUtils.getSHA1(timestamp.toString() + lisenceKey);
-        var controller = Controller()
-        var x = controller.start(channelKey, timestamp.toString(), myHexHash);
-        x.enqueue(this);
-
-    }
 
     fun initialize(reintialize: Boolean) {
+        val defaultBandwidthMeter = DefaultBandwidthMeter.Builder(mContext).build()
         val videoTrackSelectionFactory: TrackSelection.Factory = AdaptiveTrackSelection.Factory()
-        val trackSelector = DefaultTrackSelector(videoTrackSelectionFactory)
+        val trackSelector =  DefaultTrackSelector(videoTrackSelectionFactory)
+
         player = ExoPlayerFactory.newSimpleInstance(mContext, trackSelector)
         player.addListener(this)
+
         if (mWithDai) {
             sampleVideoPlayer = VideoPlayer(
                 mContext,
                 mPlayerView,
                 mWithIma,
                 mImaUrl,
-                mGaTracker, mHibridSettings
+                mGaTracker, mHibridSettings,
+                defaultBandwidthMeter = defaultBandwidthMeter
+
             )
             sampleVideoPlayer.enableControls(false)
             val sampleAdsWrapper = DaiWrapper(
@@ -232,12 +235,13 @@ class HibridPlayer(
                 mDaiAssetKey,
                 mdaiApiKey,
                 mGaTracker,
-                mHibridSettings
+                mHibridSettings,
+                        defaultBandwidthMeter = defaultBandwidthMeter
             )
             if (mWithDai)
                 sampleAdsWrapper.requestAndPlayAds()
         } else {
-            val defaultBandwidthMeter = DefaultBandwidthMeter.Builder(mContext).build()
+
             val dataSourceFactory: DataSource.Factory = DefaultDataSourceFactory(
                 mContext,
                 Util.getUserAgent(mContext, "Exo2"), defaultBandwidthMeter
@@ -255,9 +259,12 @@ class HibridPlayer(
                         imaUrl = url,
                         context = mContext,
                         gaTracker = mGaTracker,
-                        hibridSettings = mHibridSettings
+                        hibridSettings = mHibridSettings,
+                        defaultBandwidthMeter = defaultBandwidthMeter
                     )
                 } else
+//                    SsMediaSource.Factory(dataSourceFactory
+//                    ).createMediaSource(mediaItem)
                     HlsMediaSource.Factory(dataSourceFactory).createMediaSource(mediaItem);
             MyPlayer().init(
                 player = player,
@@ -274,6 +281,14 @@ class HibridPlayer(
     override fun onPlayerError(error: ExoPlaybackException) {
         if (isBehindLiveWindow(error)) {
             initialize(reintialize = true)
+        }
+        else{
+            SendGaTrackerEvent(
+                mGaTracker,
+                mHibridSettings.channelKey,
+                "Debug Error",
+                error.message.toString()
+            )
         }
     }
 
