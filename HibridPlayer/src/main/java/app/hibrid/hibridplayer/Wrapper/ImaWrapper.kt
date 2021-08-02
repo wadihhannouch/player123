@@ -3,6 +3,7 @@ package app.hibrid.hibridplayer.Wrapper
 import android.content.Context
 import android.net.Uri
 import android.os.Handler
+import app.hibrid.hibridplayer.HibridPlayer
 import app.hibrid.hibridplayer.Utils.HibridPlayerSettings
 import app.hibrid.hibridplayer.Utils.SendGaTrackerEvent
 import com.google.ads.interactivemedia.v3.api.*
@@ -29,6 +30,7 @@ class ImaWrapper : MediaSourceEventListener, AdsLoader.AdsLoadedListener,
         lateinit var mPlayer: SimpleExoPlayer;
         lateinit var mDefaultBandwidthMeter: DefaultBandwidthMeter;
         lateinit var mPlayerView: PlayerView;
+        lateinit var mChannelId : String;
         lateinit var mHibridSettings: HibridPlayerSettings;
     }
 
@@ -45,14 +47,15 @@ class ImaWrapper : MediaSourceEventListener, AdsLoader.AdsLoadedListener,
         context: Context,
         gaTracker: Tracker?,
         hibridSettings: HibridPlayerSettings,
-        defaultBandwidthMeter: DefaultBandwidthMeter
+        defaultBandwidthMeter: DefaultBandwidthMeter,
+        channelId: String?
     ): AdsMediaSource {
         mHibridSettings = hibridSettings
         mDefaultBandwidthMeter = defaultBandwidthMeter
         mPlayer = player;
         mPlayerView = playerView;
         mGaTracker = gaTracker
-
+        mChannelId = channelId!!
         val mImaUri = Uri.parse(imaUrl);
         val mImaAdsLoader = ImaAdsLoader.Builder(context)
             .setAdEventListener(this)
@@ -107,12 +110,12 @@ class ImaWrapper : MediaSourceEventListener, AdsLoader.AdsLoadedListener,
                     mPlayer.currentPeriodIndex)
             if (value.toInt() == 0 && adLoading == AdLoading.None) {
                 adLoading = AdLoading.Started
-                SendGaTrackerEvent(mGaTracker, mHibridSettings.channelKey,"Preroll ad","Started")
+                SendGaTrackerEvent(mGaTracker, mChannelId,"Preroll ad","Started")
             }
         } else {
             if (adLoading == AdLoading.Started) {
                 adLoading = AdLoading.None;
-                SendGaTrackerEvent(mGaTracker, mHibridSettings.channelKey,"Preroll ad","Ended")
+                SendGaTrackerEvent(mGaTracker, mChannelId,"Preroll ad","Ended")
             }
         }
         super.onLoadStarted(windowIndex, mediaPeriodId, loadEventInfo, mediaLoadData)
@@ -123,7 +126,7 @@ class ImaWrapper : MediaSourceEventListener, AdsLoader.AdsLoadedListener,
     }
 
     override fun onAdError(p0: AdErrorEvent?) {
-        SendGaTrackerEvent(mGaTracker, mHibridSettings.channelKey,"Ima error", p0!!.error.message + " " +  p0!!.error.errorCodeNumber.toString())
+        SendGaTrackerEvent(mGaTracker, mChannelId,"Ima error", p0!!.error.message + " " +  p0!!.error.errorCodeNumber.toString())
     }
 
 
@@ -133,7 +136,7 @@ class ImaWrapper : MediaSourceEventListener, AdsLoader.AdsLoadedListener,
             AdEvent.AdEventType.AD_PROGRESS -> {
             }
             AdEvent.AdEventType.CLICKED-> {
-                SendGaTrackerEvent(mGaTracker, mHibridSettings.channelKey,"ad_click","dai_ad")
+                SendGaTrackerEvent(mGaTracker, mChannelId,"ad_click","dai_ad")
             }
             else -> print(String.format("Event Type: %s\n", event.type))
         }

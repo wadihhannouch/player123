@@ -8,7 +8,7 @@ class SendGaTrackerEvent (mGaTracker:Tracker?, channelKey:String, title:String, 
     init {
         mGaTracker?.send(
             HitBuilders.EventBuilder()
-                .setLabel(channelKey).setAction(title).setCategory(description)
+                .setCategory(channelKey).setAction(title).setLabel(description)
                 .build()
         );
     }

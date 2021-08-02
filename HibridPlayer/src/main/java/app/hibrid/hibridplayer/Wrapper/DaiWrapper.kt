@@ -43,7 +43,8 @@ class DaiWrapper(
     var mdaiApiKey: String?,
     gaTracker: Tracker?,
     hibridSettings: HibridPlayerSettings,
-    defaultBandwidthMeter: DefaultBandwidthMeter
+    defaultBandwidthMeter: DefaultBandwidthMeter,
+    channelId: String?
 ) : AdErrorListener, AdsLoadedListener, AdEvent.AdEventListener {
 
     private val sdkFactory: ImaSdkFactory = ImaSdkFactory.getInstance()
@@ -55,7 +56,7 @@ class DaiWrapper(
     private  var mGaTracker : Tracker? = gaTracker;
     private  var mHibridSettings: HibridPlayerSettings = hibridSettings;
     private  var mDefaultBandwidthMeter: DefaultBandwidthMeter = defaultBandwidthMeter;
-
+    private var mChannelId = channelId
 
     init {
         val settings = sdkFactory.createImaSdkSettings()
@@ -114,13 +115,13 @@ class DaiWrapper(
 
             override fun onAdBreakStarted() {
                 videoPlayer!!.enableControls(false)
-                SendGaTrackerEvent(mGaTracker,mHibridSettings.channelKey,"onAdBreakStarted","Dai")
+                SendGaTrackerEvent(mGaTracker,mChannelId!!,"onAdBreakStarted","Dai")
             }
 
             override fun onAdBreakEnded() {
                 // Re-enable player controls.
                 videoPlayer?.enableControls(true)
-                SendGaTrackerEvent(mGaTracker,mHibridSettings.channelKey,"onAdBreakEnded","Dai")
+                SendGaTrackerEvent(mGaTracker,mChannelId!!,"onAdBreakEnded","Dai")
             }
 
             override fun onAdPeriodStarted() {
@@ -145,7 +146,7 @@ class DaiWrapper(
     /** AdErrorListener implementation  */
     override fun onAdError(event: AdErrorEvent) {
         // play fallback URL.
-        SendGaTrackerEvent(mGaTracker,mHibridSettings.channelKey,title = "Ad Error", description = "Message: "+event.error.message.toString() + " Code :"+ event.error.errorCodeNumber.toString())
+        SendGaTrackerEvent(mGaTracker,mChannelId!!,title = "Ad Error", description = "Message: "+event.error.message.toString() + " Code :"+ event.error.errorCodeNumber.toString())
         videoPlayer!!.setStreamUrl(fallbackUrl)
         videoPlayer.enableControls(true)
         videoPlayer.play()
@@ -158,7 +159,7 @@ class DaiWrapper(
             }
             AdEventType.CLICKED-> {
 
-                SendGaTrackerEvent(mGaTracker,mHibridSettings.channelKey,"ad_click","ima_ad")
+                SendGaTrackerEvent(mGaTracker,mChannelId!!,"ad_click","ima_ad")
             }
             else -> print(String.format("Event Type: %s\n", event.type))
         }

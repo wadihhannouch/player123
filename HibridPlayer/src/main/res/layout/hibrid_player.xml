@@ -12,7 +12,15 @@
         android:layout_height="match_parent"
         android:animateLayoutChanges="true"
         app:controller_layout_id="@layout/controllers" />
-
+    <ProgressBar
+        android:id="@+id/pb"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="visible"
+        android:layout_centerInParent="true"
+        android:indeterminate="true"
+        android:indeterminateTint="@android:color/holo_red_dark"
+        />
     <FrameLayout
         android:id="@+id/adUiContainer"
         android:layout_width="match_parent"

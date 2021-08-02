@@ -1,15 +1,13 @@
 package app.hibrid.hibridplayer.Player
 
-import android.R
 import app.hibrid.hibridplayer.Utils.HibridPlayerSettings
 import app.hibrid.hibridplayer.Utils.SendGaTrackerEvent
-import com.google.android.exoplayer2.C
+import app.hibrid.hibridplayer.Wrapper.ImaWrapper
 import com.google.android.exoplayer2.ControlDispatcher
 import com.google.android.exoplayer2.Player
 import com.google.android.exoplayer2.SimpleExoPlayer
 import com.google.android.exoplayer2.source.MediaSource
 import com.google.android.exoplayer2.source.TrackGroupArray
-import com.google.android.exoplayer2.trackselection.MappingTrackSelector.MappedTrackInfo
 import com.google.android.exoplayer2.trackselection.TrackSelectionArray
 import com.google.android.exoplayer2.ui.PlayerView
 import com.google.android.exoplayer2.video.VideoListener
@@ -23,6 +21,7 @@ class MyPlayer() : Player.EventListener, VideoListener {
         lateinit var mMediaSource: MediaSource;
         lateinit var mPlayerView: PlayerView;
         lateinit var mGaTracker: Tracker;
+        lateinit var mChannelId: String;
         lateinit var mHibridSettings: HibridPlayerSettings
         var mAutoplay:Boolean=false;
     }
@@ -43,8 +42,10 @@ class MyPlayer() : Player.EventListener, VideoListener {
         playerView: PlayerView,
         autoplay: Boolean,
         gaTracker: Tracker,
-        hibridSettings: HibridPlayerSettings
+        hibridSettings: HibridPlayerSettings,
+        channelId: String?
     ) {
+
         mGaTracker = gaTracker
         mHibridSettings = hibridSettings
         mAutoplay = autoplay;
@@ -57,7 +58,7 @@ class MyPlayer() : Player.EventListener, VideoListener {
         mPlayer.prepare()
         mPlayerView.keepScreenOn = true
         mPlayerView.controllerShowTimeoutMs = 1000
-
+        mChannelId = channelId!!
         mPlayerView.setControlDispatcher(
             object : ControlDispatcher {
                 override fun dispatchSetPlayWhenReady(
@@ -118,6 +119,14 @@ class MyPlayer() : Player.EventListener, VideoListener {
             })
         mPlayer.addListener(this)
         mPlayer.addVideoListener(this)
+        var x = mPlayer.mediaItemCount
+        for( i in 0..x){
+            var media = mPlayer.getMediaItemAt(i)
+            var current = mPlayer.currentTrackSelections
+            var track = mPlayer.trackSelector
+            var trackGroup = mPlayer.currentTrackGroups
+
+        }
     }
 
     override fun onVideoSizeChanged(
@@ -128,9 +137,9 @@ class MyPlayer() : Player.EventListener, VideoListener {
     ) {
         SendGaTrackerEvent(
             mGaTracker,
-            mHibridSettings.channelKey,
+            mChannelId,
             "Video Falvor",
-            "$width x $height"
+            "${width}p"
         )
         super.onVideoSizeChanged(width, height, unappliedRotationDegrees, pixelWidthHeightRatio)
     }
@@ -139,10 +148,11 @@ class MyPlayer() : Player.EventListener, VideoListener {
         var playingTitle = if(isPlaying ) "Play" else "Pause";
         SendGaTrackerEvent(
             mGaTracker,
-            channelKey = mHibridSettings.channelKey,
+            channelKey = mChannelId,
             title = playingTitle,
             description = playingTitle
         )
+
         super.onIsPlayingChanged(isPlaying)
     }
 }

@@ -46,7 +46,8 @@ class VideoPlayer(
     mImaUrl: String,
     gaTracker: Tracker?,
     hibridSettings: HibridPlayerSettings,
-    defaultBandwidthMeter: DefaultBandwidthMeter
+    defaultBandwidthMeter: DefaultBandwidthMeter,
+    channelId: String?
 ) : Player.EventListener, VideoListener {
 
     /** Video player callback to be called when TXXX ID3 tag is received or seeking occurs.  */
@@ -56,6 +57,7 @@ class VideoPlayer(
     }
     var withIma = mWithIma;
     var imaUrl = mImaUrl;
+    var mChannelId = channelId;
     private var simpleExoPlayer: SimpleExoPlayer? = null
     private var playerCallback: SampleVideoPlayerCallback? = null
     private var mGaTracker:Tracker? = gaTracker;
@@ -74,7 +76,7 @@ class VideoPlayer(
         unappliedRotationDegrees: Int,
         pixelWidthHeightRatio: Float
     ) {
-        SendGaTrackerEvent(mGaTracker,mHibridSettings.channelKey,"Video Falvor","$width x $height")
+        SendGaTrackerEvent(mGaTracker,mChannelId!!,"Video Falvor","$width x $height")
         super.onVideoSizeChanged(width, height, unappliedRotationDegrees, pixelWidthHeightRatio)
     }
     private fun initPlayer() {
@@ -160,7 +162,8 @@ class VideoPlayer(
                 context = context,
                 gaTracker = mGaTracker,
                 hibridSettings = mHibridSettings,
-                defaultBandwidthMeter = mDefaultBandwidthMeter
+                defaultBandwidthMeter = mDefaultBandwidthMeter,
+                channelId = mChannelId
             )
         }
         else{
@@ -263,7 +266,7 @@ class VideoPlayer(
 
     override fun onIsPlayingChanged(isPlaying: Boolean) {
         val playingTitle = if(isPlaying ) "Play" else "Pause";
-          SendGaTrackerEvent(mGaTracker,channelKey = mHibridSettings.channelKey,title = playingTitle,description = playingTitle)
+          SendGaTrackerEvent(mGaTracker,channelKey = mChannelId!!,title = playingTitle,description = playingTitle)
         super.onIsPlayingChanged(isPlaying)
     }
 }
